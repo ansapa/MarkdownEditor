@@ -8,9 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var text = ""
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        VStack {
+            MarkdownEditor(text: $text)
+                .padding()
+        }
     }
 }
 
