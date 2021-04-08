@@ -66,6 +66,7 @@ extension MarkdownEditor {
                     let length = end - start + 1
                     textView.textStorage?.addAttribute(.foregroundColor, value: blockColor, range: NSRange(location: start, length: length))
                 }
+                self.parent.text = text
             }
         }
     }

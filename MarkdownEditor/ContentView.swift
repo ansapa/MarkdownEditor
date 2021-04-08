@@ -8,12 +8,20 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var text = ""
+    @State var source = ""
     var body: some View {
-        VStack {
-            MarkdownEditor(text: $text)
+        TabView {
+            MarkdownEditor(text: $source)
+                .tabItem { Text("Editor") }
+                .padding()
+            Text("HTML placeholder")
+                .tabItem { Text("HTML") }
+                .padding()
+            DebugView(text: source)
+                .tabItem { Text("Debug") }
                 .padding()
         }
+        .padding()
     }
 }
 

@@ -50,6 +50,7 @@ class Scanner {
     }
 
     let rules = [
+        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
         (#"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
         (#"^ {0,3}#{1,6} .*$"#, BlockType.atx_heading),
         (#"^ {0,3}> .*$"#, BlockType.block_quote),
@@ -60,6 +61,83 @@ class Scanner {
     ]
     
     func getBlocks() -> [Block] {
+        var blocks = [Block]()
+        let lines = getLines()
+        var lineNumber = 0
+        while lineNumber < lines.count {
+            let line = lines[lineNumber]
+            let lineStr = source[line.start...line.end]
+            for (rule, blockType) in rules {
+                if lineStr.range(of: rule, options: .regularExpression) != nil {
+                    // Recognized line.
+                    switch blockType {
+                    case .setext_heading:
+                        if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                            // Setext_heading
+                            previousBlock.end = line.end
+                            previousBlock.type = .setext_heading
+                        } else {
+                            if lineStr.range(of: #"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, options: .regularExpression) != nil {
+                                let block = Block(start: line.start, end: line.end, type: .thematic_break)
+                                blocks.append(block)
+                            } else {
+                                let block = Block(start: line.start, end: line.end, type: .paragraph)
+                                blocks.append(block)
+                            }
+                        }
+                    case .fenced_code_block:
+                        if lineNumber + 1 < lines.count {
+                            var nextLine = lines[lineNumber + 1]
+                            var nextLineStr = source[nextLine.start...nextLine.end]
+                            while lineNumber + 1 < lines.count && nextLineStr.range(of: #"^ {0,3}```.*$"#, options: .regularExpression) == nil {
+                                lineNumber = lineNumber + 1
+                                if lineNumber + 1 < lines.count {
+                                    nextLine = lines[lineNumber + 1]
+                                    nextLineStr = source[nextLine.start...nextLine.end]
+                                }
+                            }
+                            if lineNumber + 1 < lines.count {
+                                lineNumber = lineNumber + 1
+                            }
+                            let block = Block(start: line.start, end: nextLine.end, type: .fenced_code_block)
+                            blocks.append(block)
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    case .paragraph,
+                         .blank_line,
+                         .block_quote,
+                         .indented_code_block:
+                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    default:
+                        let block = Block(start: line.start, end: line.end, type: blockType)
+                        blocks.append(block)
+                    }
+                    break
+                }
+            }
+            lineNumber = lineNumber + 1
+        }
+        return blocks
+    }
+    
+    func getLast(_ blocks: [Block], ifType type: BlockType) -> Block? {
+        if let block = blocks.last {
+            if block.type == type {
+                return block
+            }
+        }
+        return nil
+    }
+    
+    func getBlocksOld() -> [Block] {
         var blocks = [Block]()
         let lines = getLines()
         var lineNumber = 0

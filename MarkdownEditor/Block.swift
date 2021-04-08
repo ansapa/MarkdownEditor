@@ -15,13 +15,18 @@ enum BlockType {
     case fenced_code_block
     case html_block
     case paragraph
-    case line
     case block_quote
     case blank_line
 }
 
-struct Block {
+class Block {
     var start: String.Index
     var end: String.Index
     var type: BlockType
+    
+    init(start: String.Index, end: String.Index, type: BlockType) {
+        self.start = start
+        self.end = end
+        self.type = type
+    }
 }
