@@ -8,27 +8,177 @@
 import Foundation
 
 class Markdown {
+    
+    // Public
+    
     let source: String
     
     init(_ source: String) {
         self.source = source
     }
     
+    func getHtml() -> String {
+        var html = ""
+        let blocks = getBlocks()
+        for i in 0..<blocks.count {
+            var blockContents = ""
+            var index = blocks[i].start
+            while index <= blocks[i].end {
+                if source[index] == "\0" {
+                    blockContents += "\u{FFFD}"
+                }
+                else if source[index].isNewline {
+                    // Trim whitespace
+                    blockContents = blockContents.trimmingCharacters(in: .whitespaces)
+                    blockContents += "\n"
+                    index = source.index(after: index)
+                    while index <= blocks[i].end && source[index].isWhitespace {
+                        index = source.index(after: index)
+                    }
+                    index = source.index(before: index)
+                }
+                else {
+                    blockContents += source[index...index]
+                }
+                index = source.index(after: index)
+            }
+            // Trim final newline
+            if blockContents.count > 0 {
+                let lastChar = blockContents.index(before: blockContents.endIndex)
+                if blockContents[lastChar...lastChar] == "\n" {
+                    blockContents = String(blockContents[blockContents.startIndex..<lastChar])
+                }
+            }
+            // Trim final whitespace
+            blockContents = blockContents.trimmingCharacters(in: .whitespaces)
+            switch blocks[i].type {
+            case .thematic_break:
+                html += "<hr />\n"
+            case .atx_heading:
+                var level = 0
+                var start = blockContents.startIndex
+                while blockContents.index(start, offsetBy: level) < blockContents.endIndex && blockContents[blockContents.index(start, offsetBy: level)] == "#" {
+                    level = level + 1
+                }
+                if blockContents.index(start, offsetBy: level) < blockContents.endIndex {
+                    // Trim final #-characters
+                    start = blockContents.index(start, offsetBy: level)
+                    var lastChar = blockContents.index(before: blockContents.endIndex)
+                    while lastChar > start && blockContents[lastChar...lastChar] == "#" {
+                        blockContents = String(blockContents[blockContents.startIndex..<lastChar])
+                        lastChar = blockContents.index(before: blockContents.endIndex)
+                    }
+                    start = blockContents.index(after: start)
+                    blockContents = String(blockContents[start..<blockContents.endIndex])
+                } else {
+                    blockContents = ""
+                }
+                html += "<h\(level)>\(blockContents)</h\(level)>\n"
+            case .setext_heading:
+                let lines = getLines(blockContents)
+                let setext_indicator = blockContents[lines[lines.count - 1].start]
+                if setext_indicator == "=" {
+                    html += "<h1>"
+                } else {
+                    html += "<h2>"
+                }
+                for i in 0...lines.count - 2 {
+                    html += blockContents[lines[i].start...lines[i].end]
+                }
+                // trim last newline
+                let lastChar = html.index(before: html.endIndex)
+                if html[lastChar...lastChar] == "\n" {
+                    html = String(html[html.startIndex..<lastChar])
+                }
+                if setext_indicator == "=" {
+                    html += "</h1>\n"
+                } else {
+                    html += "</h2>\n"
+                }
+            case .indented_code_block:
+                html += "<pre><code>\(blockContents)\n</code></pre>\n"
+            case .fenced_code_block:
+                html += "<pre><code>"
+                let lines = getLines(blockContents)
+                if lines.count > 2 {
+                    for i in 1...lines.count - 2 {
+                        html += blockContents[lines[i].start...lines[i].end]
+                    }
+                    // trim last newline
+                    let lastChar = html.index(before: html.endIndex)
+                    if html[lastChar...lastChar] == "\n" {
+                        html = String(html[html.startIndex..<lastChar])
+                    }
+                }
+                html += "</code></pre>\n"
+            case .paragraph:
+                html += "<p>\(blockContents)</p>\n"
+            case .block_quote:
+                let lines = getLines(blockContents)
+                html += "<cite>"
+                for line in lines {
+                    if blockContents.count > 1 {
+                        if blockContents[line.start...line.end].count > 2 {
+                            let start = blockContents.index(after: line.start)
+                            var lineStr = String(blockContents[start...line.end])
+                            lineStr = lineStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                            html += "\(lineStr)\n"
+                        }
+                    }
+                }
+                html += "</cite>\n"
+            case .list_item:
+                let lines = getLines(blockContents)
+                html += "<ul>\n"
+                for line in lines {
+                    if blockContents.count > 1 {
+                        let start = blockContents.index(after: line.start)
+                        var lineStr = String(blockContents[start...line.end])
+                        lineStr = lineStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                        html += "<li>\(lineStr)</li>\n"
+                    } else {
+                        html += "<li></li>\n"
+                    }
+                }
+                html += "</ul>\n"
+            case .blank_line:
+                break
+            default:
+                html += "<div class=\"unknown\">\(blockContents)</div>\n"
+            }
+        }
+        return html
+    }
+
+    func getLines(_ str: String) -> [Line] {
+        var lines = [Line]()
+        var index = str.startIndex
+        var start = index
+        
+        while index < str.endIndex {
+            if str[index] == "\n" || str[index] == "\r" || str[index] == "\r\n" {
+                let line = Line(start: start, end: index)
+                lines.append(line)
+                start = str.index(after: index)
+            }
+            index = str.index(after: index)
+        }
+        if start < str.endIndex {
+            let end = str.index(before: str.endIndex)
+            let line = Line(start: start, end: end)
+            lines.append(line)
+        }
+        return lines
+    }
+
     func getLines() -> [Line] {
         var lines = [Line]()
         var index = source.startIndex
         var start = index
         
         while index < source.endIndex {
-            if source[index] == "\n" || source[index] == "\r" || source [index] == "\r\n" {
-                let lineStr = source[start...index]
-                var hint = LineHint.unknown
-                for (lineType, rule) in lineHintRules {
-                    if lineStr.range(of: rule, options: .regularExpression) != nil {
-                        hint = lineType
-                    }
-                }
-                let line = Line(start: start, end: index, hint: hint)
+            if source[index] == "\n" || source[index] == "\r" || source[index] == "\r\n" {
+                let line = Line(start: start, end: index)
                 lines.append(line)
                 start = source.index(after: index)
             }
@@ -36,30 +186,12 @@ class Markdown {
         }
         if start < source.endIndex {
             let end = source.index(before: source.endIndex)
-            let lineStr = source[start...end]
-            var hint = LineHint.unknown
-            for (lineType, rule) in lineHintRules {
-                if lineStr.range(of: rule, options: .regularExpression) != nil {
-                    hint = lineType
-                }
-            }
-            let line = Line(start: start, end: end, hint: hint)
+            let line = Line(start: start, end: end)
             lines.append(line)
         }
         return lines
     }
 
-    let rules = [
-        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
-        (#"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
-        (#"^ {0,3}#{1,6} .*$"#, BlockType.atx_heading),
-        (#"^ {0,3}> .*$"#, BlockType.block_quote),
-        (#"^ {4,}.*$"#, BlockType.indented_code_block),
-        (#"^ {0,3}```.*$"#, BlockType.fenced_code_block),
-        (#"^[\n\r]"#, BlockType.blank_line),
-        (#".*"#, BlockType.paragraph)
-    ]
-    
     func getBlocks() -> [Block] {
         var blocks = [Block]()
         let lines = getLines()
@@ -118,6 +250,7 @@ class Markdown {
                         }
                     case .paragraph,
                          .blank_line,
+                         .list_item,
                          .block_quote:
                         if let previousBlock = getLast(blocks, ifType: blockType) {
                             // Continue
@@ -137,67 +270,31 @@ class Markdown {
         }
         return blocks
     }
+
+    // Private
     
-    func getLast(_ blocks: [Block], ifType type: BlockType) -> Block? {
+    private let rules = [
+        (#"^- .*$"#, .list_item),
+        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
+        (#"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
+        (#"^ {0,3}#{1,6}[ \t].*$"#, BlockType.atx_heading),
+        (#"^ {0,3}#{1,6}$"#, BlockType.atx_heading),
+        (#"^ {0,3}>[ \t].*$"#, BlockType.block_quote),
+        (#"^( {4,}).*$"#, BlockType.indented_code_block),
+        (#"^ *\t{1,}.*$"#, BlockType.indented_code_block),
+        (#"^ {0,3}```.*$"#, BlockType.fenced_code_block),
+        (#"^[\n\r]"#, BlockType.blank_line),
+        (#".*"#, BlockType.paragraph)
+    ]
+    
+
+    private func getLast(_ blocks: [Block], ifType type: BlockType) -> Block? {
         if let block = blocks.last {
             if block.type == type {
                 return block
             }
         }
         return nil
-    }
-    
-    func getHtml() -> String {
-        var html = ""
-        let blocks = getBlocks()
-        for i in 0..<blocks.count {
-            var blockContents = ""
-            var index = blocks[i].start
-            while index <= blocks[i].end {
-                if source[index] == "\0" {
-                    blockContents += "\u{FFFD}"
-                }
-                else {
-                    blockContents += source[index...index]
-                }
-                index = source.index(after: index)
-            }
-            // Trim whitespaces
-            blockContents = blockContents.trimmingCharacters(in: .whitespaces)
-            // Trim final newline
-            let lastChar = blockContents.index(before: blockContents.endIndex)
-            if blockContents[lastChar...lastChar] == "\n" {
-                blockContents = String(blockContents[blockContents.startIndex..<lastChar])
-            }
-            switch blocks[i].type {
-            case .thematic_break:
-                html += "<hr />\n"
-            case .atx_heading:
-                var level = 0
-                var start = blockContents.startIndex
-                while blockContents[blockContents.index(start, offsetBy: level)] == "#" {
-                    level = level + 1
-                }
-                start = blockContents.index(start, offsetBy: level+1)
-                blockContents = String(blockContents[start..<blockContents.endIndex])
-                html += "<h\(level)>\(blockContents)</h\(level)>\n"
-            case .setext_heading:
-                html += "<h1>\(blockContents)</h1>\n"
-            case .indented_code_block:
-                html += "<pre><code>\(blockContents)</code></pre>\n"
-            case .fenced_code_block:
-                html += "<code>\(blockContents)</code>\n"
-            case .paragraph:
-                html += "<p>\(blockContents)</p>\n"
-            case .block_quote:
-                html += "<cite>\(blockContents)</cite>\n"
-            case .blank_line:
-                break
-            default:
-                html += "<div class=\"unknown\">\(blockContents)</div>\n"
-            }
-        }
-        return html
     }
     
     enum BlockType {
@@ -207,8 +304,10 @@ class Markdown {
         case indented_code_block
         case fenced_code_block
         case html_block
+        case link_reference_definition
         case paragraph
         case block_quote
+        case list_item
         case blank_line
     }
 
@@ -224,39 +323,9 @@ class Markdown {
         }
     }
     
-    enum LineHint {
-        case blank_line
-        case setext_underline
-        case thematic_break
-        case atx_heading
-        case indented_code
-        case code_fence
-        case html
-        case link_label
-        case block_quote
-        case list_item
-        case paragraph
-        case unknown
-    }
-
-    let lineHintRules = [
-        (LineHint.blank_line, #"^[\n\r]"#),
-        (LineHint.setext_underline, #"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#),
-        (LineHint.thematic_break, #"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#),
-        (LineHint.atx_heading, #"^ {0,3}#{1,6} .*$"#),
-        (LineHint.indented_code, #"^ {4,}.*$"#),
-        (LineHint.code_fence, #"^ {0,3}[`~]{3}.*$"#),
-    //    (LineHint.html, #""#),
-    //    (LineHint.link_label, #""#),
-        (LineHint.block_quote, #"^ {0,3}> .*$"#),
-    //    (LineHint.list_item, #""#),
-        (LineHint.paragraph, #".*"#)
-    ]
-
     struct Line {
         let start: String.Index
         let end: String.Index
-        let hint: LineHint
     }
 
 }
