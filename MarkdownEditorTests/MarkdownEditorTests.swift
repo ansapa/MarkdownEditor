@@ -57,7 +57,7 @@ class MarkdownEditorTests: XCTestCase {
             print("Markdown:\n\(markdown)")
             let html = test.html
             print("Expected HTML:\n\(html)")
-            let generatedHtml = Scanner(source: markdown).getHtml()
+            let generatedHtml = Markdown(markdown).getHtml()
             print("Generated HTML:\n\(generatedHtml)")
             if generatedHtml ==  html {
                 score.success += 1

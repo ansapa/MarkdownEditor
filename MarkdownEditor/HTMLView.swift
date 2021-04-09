@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WebKit
 
 struct HTMLView: View {
     var text: String
@@ -30,7 +31,7 @@ struct HTMLView: View {
         }
     }
     func htmlText() -> String {
-        let scanner = Scanner(source: text)
+        let scanner = Markdown(text)
         return scanner.getHtml()
     }
 
@@ -41,3 +42,17 @@ struct HTMLView_Previews: PreviewProvider {
         HTMLView(text: "Test")
     }
 }
+
+struct WebView: NSViewRepresentable {
+    let html: String
+    
+    func makeNSView(context: Context) -> WKWebView {
+        let webview = WKWebView()
+        webview.loadHTMLString(html, baseURL: nil)
+        return webview
+    }
+    
+    func updateNSView(_ nsView: WKWebView, context: Context) {
+    }
+}
+

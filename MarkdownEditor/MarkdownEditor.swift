@@ -40,7 +40,7 @@ extension MarkdownEditor {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             if let text = textView.textStorage?.string {
-                let scanner = Scanner(source: text)
+                let scanner = Markdown(text)
                 let blocks = scanner.getBlocks()
                 for block in blocks {
                     let blockColor: NSColor

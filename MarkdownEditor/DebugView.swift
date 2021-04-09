@@ -39,7 +39,7 @@ struct DebugView: View {
         return output
     }
     
-    func blockTypeString(_ block: Block) -> String {
+    func blockTypeString(_ block: Markdown.Block) -> String {
         switch block.type {
         case .atx_heading:
             return "<ATX_HEADING>"
@@ -58,7 +58,7 @@ struct DebugView: View {
     
     func debugText() -> String {
         var debugText = ""
-        let scanner = Scanner(source: text)
+        let scanner = Markdown(text)
         let lines = scanner.getLines()
         debugText += "Source size: \(text.count)\n"
         debugText += "Number of lines: \(lines.count)\n"

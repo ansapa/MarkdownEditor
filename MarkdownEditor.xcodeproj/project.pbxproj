@@ -12,17 +12,12 @@
 		CD8E89B4261AF32600F84F28 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CD8E89B3261AF32600F84F28 /* Assets.xcassets */; };
 		CD8E89B7261AF32600F84F28 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CD8E89B6261AF32600F84F28 /* Preview Assets.xcassets */; };
 		CD8E89C1261AF33D00F84F28 /* MarkdownEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C0261AF33D00F84F28 /* MarkdownEditor.swift */; };
-		CD8E89C4261AFD5800F84F28 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C3261AFD5800F84F28 /* Line.swift */; };
-		CD8E89C7261AFD6800F84F28 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C6261AFD6800F84F28 /* Scanner.swift */; };
-		CD8E89CA261AFD7A00F84F28 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C9261AFD7A00F84F28 /* Block.swift */; };
+		CD8E89C7261AFD6800F84F28 /* Markdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C6261AFD6800F84F28 /* Markdown.swift */; };
 		CD8E8A4C261EE2C100F84F28 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A4B261EE2C100F84F28 /* DebugView.swift */; };
 		CD8E8A5B261F12E500F84F28 /* HTMLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A5A261F12E400F84F28 /* HTMLView.swift */; };
-		CD8E8A67261F284100F84F28 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A66261F284100F84F28 /* WebView.swift */; };
 		CD9F27E7262021EC00323601 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = CD9F27E6262021EC00323601 /* README.md */; };
 		CD9F27F026203DC500323601 /* MarkdownEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F27EF26203DC500323601 /* MarkdownEditorTests.swift */; };
-		CD9F27F92620401A00323601 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C9261AFD7A00F84F28 /* Block.swift */; };
-		CD9F28012620402900323601 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C3261AFD5800F84F28 /* Line.swift */; };
-		CD9F28042620402C00323601 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C6261AFD6800F84F28 /* Scanner.swift */; };
+		CD9F28042620402C00323601 /* Markdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C6261AFD6800F84F28 /* Markdown.swift */; };
 		CD9F28082620496300323601 /* Tests.json in Resources */ = {isa = PBXBuildFile; fileRef = CD9F28072620496300323601 /* Tests.json */; };
 /* End PBXBuildFile section */
 
@@ -45,12 +40,9 @@
 		CD8E89B8261AF32600F84F28 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CD8E89B9261AF32600F84F28 /* MarkdownEditor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkdownEditor.entitlements; sourceTree = "<group>"; };
 		CD8E89C0261AF33D00F84F28 /* MarkdownEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownEditor.swift; sourceTree = "<group>"; };
-		CD8E89C3261AFD5800F84F28 /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
-		CD8E89C6261AFD6800F84F28 /* Scanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scanner.swift; sourceTree = "<group>"; };
-		CD8E89C9261AFD7A00F84F28 /* Block.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Block.swift; sourceTree = "<group>"; };
+		CD8E89C6261AFD6800F84F28 /* Markdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Markdown.swift; sourceTree = "<group>"; };
 		CD8E8A4B261EE2C100F84F28 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		CD8E8A5A261F12E400F84F28 /* HTMLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLView.swift; sourceTree = "<group>"; };
-		CD8E8A66261F284100F84F28 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		CD9F27E6262021EC00323601 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CD9F27ED26203DC500323601 /* MarkdownEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD9F27EF26203DC500323601 /* MarkdownEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownEditorTests.swift; sourceTree = "<group>"; };
@@ -98,15 +90,12 @@
 		CD8E89AE261AF32400F84F28 /* MarkdownEditor */ = {
 			isa = PBXGroup;
 			children = (
-				CD8E89C9261AFD7A00F84F28 /* Block.swift */,
+				CD8E89C6261AFD6800F84F28 /* Markdown.swift */,
 				CD8E89B1261AF32400F84F28 /* ContentView.swift */,
 				CD8E8A4B261EE2C100F84F28 /* DebugView.swift */,
 				CD8E8A5A261F12E400F84F28 /* HTMLView.swift */,
 				CD8E89C0261AF33D00F84F28 /* MarkdownEditor.swift */,
 				CD8E89AF261AF32400F84F28 /* MarkdownEditorApp.swift */,
-				CD8E89C3261AFD5800F84F28 /* Line.swift */,
-				CD8E89C6261AFD6800F84F28 /* Scanner.swift */,
-				CD8E8A66261F284100F84F28 /* WebView.swift */,
 				CD8E89B3261AF32600F84F28 /* Assets.xcassets */,
 				CD8E89B8261AF32600F84F28 /* Info.plist */,
 				CD8E89B9261AF32600F84F28 /* MarkdownEditor.entitlements */,
@@ -236,12 +225,9 @@
 			files = (
 				CD8E89B2261AF32400F84F28 /* ContentView.swift in Sources */,
 				CD8E8A5B261F12E500F84F28 /* HTMLView.swift in Sources */,
-				CD8E89C4261AFD5800F84F28 /* Line.swift in Sources */,
 				CD8E89C1261AF33D00F84F28 /* MarkdownEditor.swift in Sources */,
 				CD8E8A4C261EE2C100F84F28 /* DebugView.swift in Sources */,
-				CD8E89CA261AFD7A00F84F28 /* Block.swift in Sources */,
-				CD8E8A67261F284100F84F28 /* WebView.swift in Sources */,
-				CD8E89C7261AFD6800F84F28 /* Scanner.swift in Sources */,
+				CD8E89C7261AFD6800F84F28 /* Markdown.swift in Sources */,
 				CD8E89B0261AF32400F84F28 /* MarkdownEditorApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -250,10 +236,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CD9F28012620402900323601 /* Line.swift in Sources */,
 				CD9F27F026203DC500323601 /* MarkdownEditorTests.swift in Sources */,
-				CD9F28042620402C00323601 /* Scanner.swift in Sources */,
-				CD9F27F92620401A00323601 /* Block.swift in Sources */,
+				CD9F28042620402C00323601 /* Markdown.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
