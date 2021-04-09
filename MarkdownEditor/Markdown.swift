@@ -26,6 +26,23 @@ class Markdown {
     
     // MARK: - Private
     // This is internal stuff. User of the class should not worry about these.
+    private let rules = [
+        (#"^ {0,3}- .*$"#, .list_item),
+        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
+        (#"^{0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
+        (#"^{1,}\t((\*[ \t]*){3,}|(-[ \t]*){3,}|(_[ \t]*){3,})[ \t]*$"#, BlockType.thematic_break),
+        (#"^ {0,3}#{1,6}[ \t].*$"#, BlockType.atx_heading),
+        (#"^ {0,3}#{1,6}$"#, BlockType.atx_heading),
+        (#"^ {0,3}>[ \t].*$"#, BlockType.block_quote),
+        (#"^( {4,}).*$"#, BlockType.indented_code_block),
+        (#"^ *\t{1,}.*$"#, BlockType.indented_code_block),
+        (#"^ {0,3}```.*$"#, BlockType.fenced_code_block),
+        (#"^ {0,3}~~~.*$"#, BlockType.fenced_code_block),
+        (#"^<.*"#, BlockType.html_block),
+        (#"^[\n\r]"#, BlockType.blank_line),
+        (#".*"#, BlockType.paragraph)
+    ]
+
     enum BlockType {
         case thematic_break
         case atx_heading
@@ -38,6 +55,106 @@ class Markdown {
         case block_quote
         case list_item
         case blank_line
+    }
+    
+    func getBlocks() -> [Block] {
+        var blocks = [Block]()
+        let lines = getLines()
+        var lineNumber = 0
+        while lineNumber < lines.count {
+            let line = lines[lineNumber]
+            let lineStr = source[line.start...line.end]
+            for (rule, blockType) in rules {
+                if lineStr.range(of: rule, options: .regularExpression) != nil {
+                    // Recognized line.
+                    switch blockType {
+                    case .setext_heading:
+                        if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                            // Setext_heading
+                            previousBlock.end = line.end
+                            previousBlock.type = .setext_heading
+                        } else {
+                            if lineStr.range(of: #"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, options: .regularExpression) != nil {
+                                let block = Block(start: line.start, end: line.end, type: .thematic_break)
+                                blocks.append(block)
+                            } else {
+                                let block = Block(start: line.start, end: line.end, type: .paragraph)
+                                blocks.append(block)
+                            }
+                        }
+                    case .fenced_code_block:
+                        if lineNumber + 1 < lines.count {
+                            var nextLine = lines[lineNumber + 1]
+                            var nextLineStr = source[nextLine.start...nextLine.end]
+                            while (lineNumber + 1 < lines.count) && nextLineStr.range(of: #"^ {0,3}```.*$"#, options: .regularExpression) == nil && nextLineStr.range(of: #"^ {0,3}~~~.*$"#, options: .regularExpression) == nil  {
+                                lineNumber = lineNumber + 1
+                                if lineNumber + 1 < lines.count {
+                                    nextLine = lines[lineNumber + 1]
+                                    nextLineStr = source[nextLine.start...nextLine.end]
+                                }
+                            }
+                            if lineNumber + 1 < lines.count {
+                                lineNumber = lineNumber + 1
+                            }
+                            let block = Block(start: line.start, end: nextLine.end, type: .fenced_code_block)
+                            blocks.append(block)
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    case .html_block:
+                        if lineNumber + 1 < lines.count {
+                            var nextLine = lines[lineNumber + 1]
+                            var nextLineStr = source[nextLine.start...nextLine.end]
+                            while (lineNumber + 1 < lines.count) && nextLineStr.range(of: #"^</.*$"#, options: .regularExpression) == nil  {
+                                lineNumber = lineNumber + 1
+                                if lineNumber + 1 < lines.count {
+                                    nextLine = lines[lineNumber + 1]
+                                    nextLineStr = source[nextLine.start...nextLine.end]
+                                }
+                            }
+                            if lineNumber + 1 < lines.count {
+                                lineNumber = lineNumber + 1
+                            }
+                            let block = Block(start: line.start, end: nextLine.end, type: .html_block)
+                            blocks.append(block)
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+
+                    case .indented_code_block:
+                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    case .paragraph,
+                         .blank_line,
+                         .list_item,
+                         .block_quote:
+                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    default:
+                        let block = Block(start: line.start, end: line.end, type: blockType)
+                        blocks.append(block)
+                    }
+                    break
+                }
+            }
+            lineNumber = lineNumber + 1
+        }
+        return blocks
     }
 
     private func _getHtml() -> String {
@@ -136,9 +253,11 @@ class Markdown {
                 html += "</code></pre>\n"
             case .paragraph:
                 html += "<p>\(blockContents)</p>\n"
+            case .html_block:
+                html += "\(blockContents)\n"
             case .block_quote:
                 let lines = getLines(blockContents)
-                html += "<cite>"
+                html += "<blockquote>"
                 for line in lines {
                     if blockContents.count > 1 {
                         if blockContents[line.start...line.end].count > 2 {
@@ -149,16 +268,20 @@ class Markdown {
                         }
                     }
                 }
-                html += "</cite>\n"
+                html += "</blockquote>\n"
             case .list_item:
                 let lines = getLines(blockContents)
                 html += "<ul>\n"
                 for line in lines {
                     if blockContents.count > 1 {
                         let start = blockContents.index(after: line.start)
-                        var lineStr = String(blockContents[start...line.end])
-                        lineStr = lineStr.trimmingCharacters(in: .whitespacesAndNewlines)
-                        html += "<li>\(lineStr)</li>\n"
+                        if start < line.end {
+                            var lineStr = String(blockContents[start...line.end])
+                            lineStr = lineStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                            html += "<li>\(lineStr)</li>\n"
+                        } else {
+                            html += "<li></li>\n"
+                        }
                     } else {
                         html += "<li></li>\n"
                     }
@@ -215,98 +338,7 @@ class Markdown {
         return lines
     }
 
-    func getBlocks() -> [Block] {
-        var blocks = [Block]()
-        let lines = getLines()
-        var lineNumber = 0
-        while lineNumber < lines.count {
-            let line = lines[lineNumber]
-            let lineStr = source[line.start...line.end]
-            for (rule, blockType) in rules {
-                if lineStr.range(of: rule, options: .regularExpression) != nil {
-                    // Recognized line.
-                    switch blockType {
-                    case .setext_heading:
-                        if let previousBlock = getLast(blocks, ifType: .paragraph) {
-                            // Setext_heading
-                            previousBlock.end = line.end
-                            previousBlock.type = .setext_heading
-                        } else {
-                            if lineStr.range(of: #"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, options: .regularExpression) != nil {
-                                let block = Block(start: line.start, end: line.end, type: .thematic_break)
-                                blocks.append(block)
-                            } else {
-                                let block = Block(start: line.start, end: line.end, type: .paragraph)
-                                blocks.append(block)
-                            }
-                        }
-                    case .fenced_code_block:
-                        if lineNumber + 1 < lines.count {
-                            var nextLine = lines[lineNumber + 1]
-                            var nextLineStr = source[nextLine.start...nextLine.end]
-                            while lineNumber + 1 < lines.count && nextLineStr.range(of: #"^ {0,3}```.*$"#, options: .regularExpression) == nil {
-                                lineNumber = lineNumber + 1
-                                if lineNumber + 1 < lines.count {
-                                    nextLine = lines[lineNumber + 1]
-                                    nextLineStr = source[nextLine.start...nextLine.end]
-                                }
-                            }
-                            if lineNumber + 1 < lines.count {
-                                lineNumber = lineNumber + 1
-                            }
-                            let block = Block(start: line.start, end: nextLine.end, type: .fenced_code_block)
-                            blocks.append(block)
-                        } else {
-                            let block = Block(start: line.start, end: line.end, type: blockType)
-                            blocks.append(block)
-                        }
-                    case .indented_code_block:
-                        if let previousBlock = getLast(blocks, ifType: blockType) {
-                            // Continue
-                            previousBlock.end = line.end
-                        } else if let previousBlock = getLast(blocks, ifType: .paragraph) {
-                            // Continue
-                            previousBlock.end = line.end
-                        } else {
-                            let block = Block(start: line.start, end: line.end, type: blockType)
-                            blocks.append(block)
-                        }
-                    case .paragraph,
-                         .blank_line,
-                         .list_item,
-                         .block_quote:
-                        if let previousBlock = getLast(blocks, ifType: blockType) {
-                            // Continue
-                            previousBlock.end = line.end
-                        } else {
-                            let block = Block(start: line.start, end: line.end, type: blockType)
-                            blocks.append(block)
-                        }
-                    default:
-                        let block = Block(start: line.start, end: line.end, type: blockType)
-                        blocks.append(block)
-                    }
-                    break
-                }
-            }
-            lineNumber = lineNumber + 1
-        }
-        return blocks
-    }
     
-    private let rules = [
-        (#"^- .*$"#, .list_item),
-        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
-        (#"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
-        (#"^ {0,3}#{1,6}[ \t].*$"#, BlockType.atx_heading),
-        (#"^ {0,3}#{1,6}$"#, BlockType.atx_heading),
-        (#"^ {0,3}>[ \t].*$"#, BlockType.block_quote),
-        (#"^( {4,}).*$"#, BlockType.indented_code_block),
-        (#"^ *\t{1,}.*$"#, BlockType.indented_code_block),
-        (#"^ {0,3}```.*$"#, BlockType.fenced_code_block),
-        (#"^[\n\r]"#, BlockType.blank_line),
-        (#".*"#, BlockType.paragraph)
-    ]
     
 
     private func getLast(_ blocks: [Block], ifType type: BlockType) -> Block? {
