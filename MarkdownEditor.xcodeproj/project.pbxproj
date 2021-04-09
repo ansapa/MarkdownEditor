@@ -19,7 +19,22 @@
 		CD8E8A5B261F12E500F84F28 /* HTMLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A5A261F12E400F84F28 /* HTMLView.swift */; };
 		CD8E8A67261F284100F84F28 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A66261F284100F84F28 /* WebView.swift */; };
 		CD9F27E7262021EC00323601 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = CD9F27E6262021EC00323601 /* README.md */; };
+		CD9F27F026203DC500323601 /* MarkdownEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9F27EF26203DC500323601 /* MarkdownEditorTests.swift */; };
+		CD9F27F92620401A00323601 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C9261AFD7A00F84F28 /* Block.swift */; };
+		CD9F28012620402900323601 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C3261AFD5800F84F28 /* Line.swift */; };
+		CD9F28042620402C00323601 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E89C6261AFD6800F84F28 /* Scanner.swift */; };
+		CD9F28082620496300323601 /* Tests.json in Resources */ = {isa = PBXBuildFile; fileRef = CD9F28072620496300323601 /* Tests.json */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CD9F27F226203DC500323601 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD8E89A4261AF32400F84F28 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD8E89AB261AF32400F84F28;
+			remoteInfo = MarkdownEditor;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		CD8E89AC261AF32400F84F28 /* MarkdownEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkdownEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,10 +52,21 @@
 		CD8E8A5A261F12E400F84F28 /* HTMLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLView.swift; sourceTree = "<group>"; };
 		CD8E8A66261F284100F84F28 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		CD9F27E6262021EC00323601 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CD9F27ED26203DC500323601 /* MarkdownEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD9F27EF26203DC500323601 /* MarkdownEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownEditorTests.swift; sourceTree = "<group>"; };
+		CD9F27F126203DC500323601 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CD9F28072620496300323601 /* Tests.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = Tests.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CD8E89A9261AF32400F84F28 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD9F27EA26203DC500323601 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -55,6 +81,7 @@
 			children = (
 				CD9F27E6262021EC00323601 /* README.md */,
 				CD8E89AE261AF32400F84F28 /* MarkdownEditor */,
+				CD9F27EE26203DC500323601 /* MarkdownEditorTests */,
 				CD8E89AD261AF32400F84F28 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -63,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				CD8E89AC261AF32400F84F28 /* MarkdownEditor.app */,
+				CD9F27ED26203DC500323601 /* MarkdownEditorTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,15 +98,15 @@
 		CD8E89AE261AF32400F84F28 /* MarkdownEditor */ = {
 			isa = PBXGroup;
 			children = (
-				CD8E89AF261AF32400F84F28 /* MarkdownEditorApp.swift */,
+				CD8E89C9261AFD7A00F84F28 /* Block.swift */,
 				CD8E89B1261AF32400F84F28 /* ContentView.swift */,
-				CD8E8A5A261F12E400F84F28 /* HTMLView.swift */,
-				CD8E8A66261F284100F84F28 /* WebView.swift */,
 				CD8E8A4B261EE2C100F84F28 /* DebugView.swift */,
+				CD8E8A5A261F12E400F84F28 /* HTMLView.swift */,
 				CD8E89C0261AF33D00F84F28 /* MarkdownEditor.swift */,
+				CD8E89AF261AF32400F84F28 /* MarkdownEditorApp.swift */,
 				CD8E89C3261AFD5800F84F28 /* Line.swift */,
 				CD8E89C6261AFD6800F84F28 /* Scanner.swift */,
-				CD8E89C9261AFD7A00F84F28 /* Block.swift */,
+				CD8E8A66261F284100F84F28 /* WebView.swift */,
 				CD8E89B3261AF32600F84F28 /* Assets.xcassets */,
 				CD8E89B8261AF32600F84F28 /* Info.plist */,
 				CD8E89B9261AF32600F84F28 /* MarkdownEditor.entitlements */,
@@ -93,6 +121,16 @@
 				CD8E89B6261AF32600F84F28 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		CD9F27EE26203DC500323601 /* MarkdownEditorTests */ = {
+			isa = PBXGroup;
+			children = (
+				CD9F27EF26203DC500323601 /* MarkdownEditorTests.swift */,
+				CD9F27F126203DC500323601 /* Info.plist */,
+				CD9F28072620496300323601 /* Tests.json */,
+			);
+			path = MarkdownEditorTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -115,6 +153,24 @@
 			productReference = CD8E89AC261AF32400F84F28 /* MarkdownEditor.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CD9F27EC26203DC500323601 /* MarkdownEditorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD9F27F426203DC500323601 /* Build configuration list for PBXNativeTarget "MarkdownEditorTests" */;
+			buildPhases = (
+				CD9F27E926203DC500323601 /* Sources */,
+				CD9F27EA26203DC500323601 /* Frameworks */,
+				CD9F27EB26203DC500323601 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD9F27F326203DC500323601 /* PBXTargetDependency */,
+			);
+			name = MarkdownEditorTests;
+			productName = MarkdownEditorTests;
+			productReference = CD9F27ED26203DC500323601 /* MarkdownEditorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -126,6 +182,10 @@
 				TargetAttributes = {
 					CD8E89AB261AF32400F84F28 = {
 						CreatedOnToolsVersion = 12.4;
+					};
+					CD9F27EC26203DC500323601 = {
+						CreatedOnToolsVersion = 12.4;
+						TestTargetID = CD8E89AB261AF32400F84F28;
 					};
 				};
 			};
@@ -143,6 +203,7 @@
 			projectRoot = "";
 			targets = (
 				CD8E89AB261AF32400F84F28 /* MarkdownEditor */,
+				CD9F27EC26203DC500323601 /* MarkdownEditorTests */,
 			);
 		};
 /* End PBXProject section */
@@ -155,6 +216,14 @@
 				CD9F27E7262021EC00323601 /* README.md in Resources */,
 				CD8E89B7261AF32600F84F28 /* Preview Assets.xcassets in Resources */,
 				CD8E89B4261AF32600F84F28 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD9F27EB26203DC500323601 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD9F28082620496300323601 /* Tests.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -177,7 +246,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CD9F27E926203DC500323601 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD9F28012620402900323601 /* Line.swift in Sources */,
+				CD9F27F026203DC500323601 /* MarkdownEditorTests.swift in Sources */,
+				CD9F28042620402C00323601 /* Scanner.swift in Sources */,
+				CD9F27F92620401A00323601 /* Block.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CD9F27F326203DC500323601 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD8E89AB261AF32400F84F28 /* MarkdownEditor */;
+			targetProxy = CD9F27F226203DC500323601 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CD8E89BA261AF32600F84F28 /* Debug */ = {
@@ -343,6 +431,46 @@
 			};
 			name = Release;
 		};
+		CD9F27F526203DC500323601 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = NN3NKG2LXT;
+				INFOPLIST_FILE = MarkdownEditorTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ansapa.MarkdownEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MarkdownEditor.app/Contents/MacOS/MarkdownEditor";
+			};
+			name = Debug;
+		};
+		CD9F27F626203DC500323601 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = NN3NKG2LXT;
+				INFOPLIST_FILE = MarkdownEditorTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ansapa.MarkdownEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MarkdownEditor.app/Contents/MacOS/MarkdownEditor";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -360,6 +488,15 @@
 			buildConfigurations = (
 				CD8E89BD261AF32600F84F28 /* Debug */,
 				CD8E89BE261AF32600F84F28 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CD9F27F426203DC500323601 /* Build configuration list for PBXNativeTarget "MarkdownEditorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD9F27F526203DC500323601 /* Debug */,
+				CD9F27F626203DC500323601 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
