@@ -105,10 +105,20 @@ class Scanner {
                             let block = Block(start: line.start, end: line.end, type: blockType)
                             blocks.append(block)
                         }
+                    case .indented_code_block:
+                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
                     case .paragraph,
                          .blank_line,
-                         .block_quote,
-                         .indented_code_block:
+                         .block_quote:
                         if let previousBlock = getLast(blocks, ifType: blockType) {
                             // Continue
                             previousBlock.end = line.end
@@ -137,60 +147,56 @@ class Scanner {
         return nil
     }
     
-    func getBlocksOld() -> [Block] {
-        var blocks = [Block]()
-        let lines = getLines()
-        var lineNumber = 0
-        while lineNumber < lines.count {
-            let line = lines[lineNumber]
-            let lineStr = source[line.start...line.end]
-            for (rule, blockType) in rules {
-                if lineStr.range(of: rule, options: .regularExpression) != nil {
-                    switch (blockType) {
-                    case .paragraph:
-                        if lineNumber + 1 < lines.count {
-                            // Check for Setext heading
-                            let nextLine = lines[lineNumber + 1]
-                            let nextLineStr = source[nextLine.start...nextLine.end]
-                            if nextLineStr.range(of: #"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, options: .regularExpression) != nil {
-                                // Setext Heading
-                                lineNumber = lineNumber + 1
-                                let block = Block(start: line.start, end: nextLine.end, type: .setext_heading)
-                                blocks.append(block)
-                            } else {
-                                let block = Block(start: line.start, end: line.end, type: blockType)
-                                blocks.append(block)
-                            }
-                        }
-                    case .fenced_code_block:
-                        if lineNumber + 1 < lines.count {
-                            var nextLine = lines[lineNumber + 1]
-                            var nextLineStr = source[nextLine.start...nextLine.end]
-                            while lineNumber + 1 < lines.count && nextLineStr.range(of: #"^ {0,3}```.*$"#, options: .regularExpression) == nil {
-                                lineNumber = lineNumber + 1
-                                if lineNumber + 1 < lines.count {
-                                    nextLine = lines[lineNumber + 1]
-                                    nextLineStr = source[nextLine.start...nextLine.end]
-                                }
-                            }
-                            if lineNumber + 1 < lines.count {
-                                lineNumber = lineNumber + 1
-                            }
-                            let block = Block(start: line.start, end: nextLine.end, type: .fenced_code_block)
-                            blocks.append(block)
-                        } else {
-                            let block = Block(start: line.start, end: line.end, type: blockType)
-                            blocks.append(block)
-                        }
-                    default:
-                        let block = Block(start: line.start, end: line.end, type: blockType)
-                        blocks.append(block)
-                    }
-                    break
+    func getHtml() -> String {
+        var html = ""
+        let blocks = getBlocks()
+        for i in 0..<blocks.count {
+            var blockContents = ""
+            var index = blocks[i].start
+            while index <= blocks[i].end {
+                if source[index] == "\0" {
+                    blockContents += "\u{FFFD}"
                 }
+                else {
+                    blockContents += source[index...index]
+                }
+                index = source.index(after: index)
             }
-            lineNumber = lineNumber + 1
+            // Trim whitespaces
+            blockContents = blockContents.trimmingCharacters(in: .whitespaces)
+            // Trim final newline
+            let lastChar = blockContents.index(before: blockContents.endIndex)
+            if blockContents[lastChar...lastChar] == "\n" {
+                blockContents = String(blockContents[blockContents.startIndex..<lastChar])
+            }
+            switch blocks[i].type {
+            case .thematic_break:
+                html += "<hr />\n"
+            case .atx_heading:
+                var level = 0
+                var start = blockContents.startIndex
+                while blockContents[blockContents.index(start, offsetBy: level)] == "#" {
+                    level = level + 1
+                }
+                start = blockContents.index(start, offsetBy: level+1)
+                blockContents = String(blockContents[start..<blockContents.endIndex])
+                html += "<h\(level)>\(blockContents)</h\(level)>\n"
+            case .setext_heading:
+                html += "<h1>\(blockContents)</h1>\n"
+            case .indented_code_block:
+                html += "<pre><code>\(blockContents)</code></pre>\n"
+            case .fenced_code_block:
+                html += "<code>\(blockContents)</code>\n"
+            case .paragraph:
+                html += "<p>\(blockContents)</p>\n"
+            case .block_quote:
+                html += "<cite>\(blockContents)</cite>\n"
+            case .blank_line:
+                break
+            default:
+                html += "<div class=\"unknown\">\(blockContents)</div>\n"
+            }
         }
-        return blocks
+        return html
     }
 }

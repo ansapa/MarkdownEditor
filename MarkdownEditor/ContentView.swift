@@ -14,7 +14,7 @@ struct ContentView: View {
             MarkdownEditor(text: $source)
                 .tabItem { Text("Editor") }
                 .padding()
-            Text("HTML placeholder")
+            HTMLView(text: source)
                 .tabItem { Text("HTML") }
                 .padding()
             DebugView(text: source)

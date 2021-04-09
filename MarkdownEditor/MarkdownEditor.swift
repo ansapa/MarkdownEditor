@@ -24,7 +24,6 @@ struct MarkdownEditor: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: MarkdownEditorView, context: Context) {
-        
     }
 }
 

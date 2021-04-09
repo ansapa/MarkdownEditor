@@ -10,11 +10,13 @@ import SwiftUI
 struct DebugView: View {
     var text: String
     var body: some View {
-        VStack {
-            Text(debugText())
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .font(Font.custom("Courier", size: 14.0))
-            Spacer()
+        ScrollView {
+            VStack {
+                Text(debugText())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(Font.custom("Courier", size: 14.0))
+                Spacer()
+            }
         }
         .background(Color.white)
     }
@@ -70,7 +72,6 @@ struct DebugView: View {
             let block = String(scanner.source[blocks[i].start...blocks[i].end])
             debugText += "Block \(i) (lengte: \(block.count)): Type: \(blockTypeString(blocks[i]))\n"
             debugText += "\(lineString(block))\n"
-            print()
         }
 
         return debugText
