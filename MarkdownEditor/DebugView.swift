@@ -64,13 +64,13 @@ struct DebugView: View {
         debugText += "Number of lines: \(lines.count)\n"
         for i in 0..<lines.count {
             let line = String(scanner.source[lines[i].start...lines[i].end])
-            debugText += "Line \(i) (lengte \(line.count)):\t\(lineString(line))\n"
+            debugText += "Line \(i) (length \(line.count)):\t\(lineString(line))\n"
         }
         let blocks = scanner.getBlocks()
         debugText += "Number of Blocks: \(blocks.count)\n"
         for i in 0..<blocks.count {
             let block = String(scanner.source[blocks[i].start...blocks[i].end])
-            debugText += "Block \(i) (lengte: \(block.count)): Type: \(blockTypeString(blocks[i]))\n"
+            debugText += "Block \(i) (length: \(block.count)): Type: \(blockTypeString(blocks[i]))\n"
             debugText += "\(lineString(block))\n"
         }
 

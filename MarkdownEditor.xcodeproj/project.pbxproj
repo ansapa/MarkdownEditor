@@ -18,6 +18,7 @@
 		CD8E8A4C261EE2C100F84F28 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A4B261EE2C100F84F28 /* DebugView.swift */; };
 		CD8E8A5B261F12E500F84F28 /* HTMLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A5A261F12E400F84F28 /* HTMLView.swift */; };
 		CD8E8A67261F284100F84F28 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8E8A66261F284100F84F28 /* WebView.swift */; };
+		CD9F27E7262021EC00323601 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = CD9F27E6262021EC00323601 /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		CD8E8A4B261EE2C100F84F28 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		CD8E8A5A261F12E400F84F28 /* HTMLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLView.swift; sourceTree = "<group>"; };
 		CD8E8A66261F284100F84F28 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
+		CD9F27E6262021EC00323601 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +53,7 @@
 		CD8E89A3261AF32400F84F28 = {
 			isa = PBXGroup;
 			children = (
+				CD9F27E6262021EC00323601 /* README.md */,
 				CD8E89AE261AF32400F84F28 /* MarkdownEditor */,
 				CD8E89AD261AF32400F84F28 /* Products */,
 			);
@@ -149,6 +152,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD9F27E7262021EC00323601 /* README.md in Resources */,
 				CD8E89B7261AF32600F84F28 /* Preview Assets.xcassets in Resources */,
 				CD8E89B4261AF32600F84F28 /* Assets.xcassets in Resources */,
 			);
