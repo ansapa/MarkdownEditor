@@ -30,6 +30,7 @@ struct HTMLView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
+    
     func htmlText() -> String {
         let scanner = Markdown(text)
         return scanner.getHtml()

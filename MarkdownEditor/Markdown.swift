@@ -8,9 +8,8 @@
 import Foundation
 
 class Markdown {
-    
-    // Public
-    
+    // MARK: - Public
+    // These are the interfaces of the class
     let source: String
     
     init(_ source: String) {
@@ -18,6 +17,30 @@ class Markdown {
     }
     
     func getHtml() -> String {
+        return _getHtml()
+    }
+    
+    func getDebugInfo() -> String {
+        return _getDebugInfo()
+    }
+    
+    // MARK: - Private
+    // This is internal stuff. User of the class should not worry about these.
+    enum BlockType {
+        case thematic_break
+        case atx_heading
+        case setext_heading
+        case indented_code_block
+        case fenced_code_block
+        case html_block
+        case link_reference_definition
+        case paragraph
+        case block_quote
+        case list_item
+        case blank_line
+    }
+
+    private func _getHtml() -> String {
         var html = ""
         let blocks = getBlocks()
         for i in 0..<blocks.count {
@@ -150,7 +173,7 @@ class Markdown {
         return html
     }
 
-    func getLines(_ str: String) -> [Line] {
+    private func getLines(_ str: String) -> [Line] {
         var lines = [Line]()
         var index = str.startIndex
         var start = index
@@ -270,8 +293,6 @@ class Markdown {
         }
         return blocks
     }
-
-    // Private
     
     private let rules = [
         (#"^- .*$"#, .list_item),
@@ -297,20 +318,6 @@ class Markdown {
         return nil
     }
     
-    enum BlockType {
-        case thematic_break
-        case atx_heading
-        case setext_heading
-        case indented_code_block
-        case fenced_code_block
-        case html_block
-        case link_reference_definition
-        case paragraph
-        case block_quote
-        case list_item
-        case blank_line
-    }
-
     class Block {
         var start: String.Index
         var end: String.Index
@@ -327,5 +334,61 @@ class Markdown {
         let start: String.Index
         let end: String.Index
     }
-
+  
+    func lineString(_ str: String) -> String {
+        var output = ""
+        for i in 0..<str.count {
+            let ch = str[str.index(str.startIndex, offsetBy: i)]
+            switch ch {
+            case "\n":
+                output += "[\\n]"
+            case "\r":
+                output += "[\\r]"
+            case "\r\n":
+                output += "[\\r\\n]"
+            default:
+                output += "[\(ch)]"
+            }
+        }
+        return output
+    }
+    
+    func blockTypeString(_ block: Markdown.Block) -> String {
+        switch block.type {
+        case .atx_heading:
+            return "<ATX_HEADING>"
+        case .setext_heading:
+            return "<SETEXT_HEADING>"
+        case .paragraph:
+            return "<PARAGRAPH>"
+        case .thematic_break:
+            return "<THEMATIC_BREAK>"
+        case .blank_line:
+            return "<BLANK_LINE>"
+        default:
+            return "<Unknown>"
+        }
+    }
+    
+    func _getDebugInfo() -> String {
+        var debugInfo = ""
+        
+        let lines = getLines()
+        debugInfo += "Source size: \(source.count)\n"
+        debugInfo += "Number of lines: \(lines.count)\n"
+        for i in 0..<lines.count {
+            let line = String(source[lines[i].start...lines[i].end])
+            debugInfo += "Line \(i) (length \(line.count)):\t\(lineString(line))\n"
+        }
+        
+        let blocks = getBlocks()
+        debugInfo += "Number of Blocks: \(blocks.count)\n"
+        for i in 0..<blocks.count {
+            let block = String(source[blocks[i].start...blocks[i].end])
+            debugInfo += "Block \(i) (length: \(block.count)): Type: \(blockTypeString(blocks[i]))\n"
+            debugInfo += "\(lineString(block))\n"
+        }
+        
+        return debugInfo
+    }
 }
