@@ -54,6 +54,7 @@ struct WebView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
+        nsView.loadHTMLString(html, baseURL: nil)
     }
 }
 

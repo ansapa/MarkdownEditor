@@ -66,7 +66,8 @@ class Markdown {
     }
     
     func getBlocks() -> [Block] {
-        return _getBlocks()
+        let lines = getLines()
+        return _getBlocks(lines)
     }
 
     // MARK: Node
@@ -114,12 +115,14 @@ class Markdown {
     }
     
     func getNodes() -> Node {
-        return _getNodes()
+        let blocks = getBlocks()
+        return _getNodes(blocks)
     }
 
     // MARK: HTML
     func getHtml() -> String {
-        return _getHtml()
+        let document = getNodes()
+        return _getHtml(document)
     }
     
     // MARK: DebugInfo
@@ -188,9 +191,8 @@ class Markdown {
         (#".*"#, BlockType.paragraph)
     ]
 
-    private func _getBlocks() -> [Block] {
+    private func _getBlocks(_ lines: [Line]) -> [Block] {
         var blocks = [Block]()
-        let lines = getLines()
         var lineNumber = 0
         while lineNumber < lines.count {
             let line = lines[lineNumber]
@@ -311,6 +313,53 @@ class Markdown {
     }
 
     // MARK: HTML
+    private func _getHtml(_ node: Node) -> String {
+        var html = ""
+        switch node.type {
+        case .document:
+            if let children = node.children {
+                for node in children {
+                    html += _getHtml(node)
+                }
+            }
+        case .block_quote:
+            break
+        case .list:
+            break
+        case .item:
+            break
+        case .code_block:
+            break
+        case .paragraph:
+            break
+        case .heading:
+            break
+        case .thematic_break:
+            html += "<hr />\n"
+        case .html_block:
+            break
+        case .text:
+            break
+        case .softbreak:
+            break
+        case .linebreak:
+            break
+        case .code:
+            break
+        case .emph:
+            break
+        case .strong:
+            break
+        case .link:
+            break
+        case .image:
+            break
+        case .html_inline:
+            break
+        }
+        return html
+    }
+    
     private func _getHtml() -> String {
         var html = ""
         let blocks = getBlocks()
@@ -449,20 +498,7 @@ class Markdown {
         }
         return html
     }
-
     
-    
-    // MARK: Node
-    private func getLastNode(_ nodes: [Node], ifType type: NodeType) -> Node? {
-        // Return the last node if of a specific type
-        if let node = nodes.last {
-            if node.type == type {
-                return node
-            }
-        }
-        return nil
-    }
-
     // MARK: Node
     private enum Rule {
         case list
@@ -494,42 +530,60 @@ class Markdown {
         (#".*"#, Rule.paragraph)
     ]
 
-    private func _getNodes() -> Node {
+    private func _getNodes(_ blocks: [Block]) -> Node {
         // Initialize the document node
         let document = Node(type: .document)
         document.start = source.getPosition(source.startIndex)
         document.end = source.getPosition(source.index(before: source.endIndex))
         document.children = [Node]()
         
-        let lines = getLines()
-        var lineNumber = 0
-        while lineNumber < lines.count {
-            let line = lines[lineNumber]
-            let lineStr = source[line.start...line.end]
-            for (pattern, rule) in rules {
-                if lineStr.range(of: pattern, options: .regularExpression) != nil {
-                    // Matched pattern
-                    switch rule {
-                    case .setext_heading:
-                        if let previousNode = getLastNode(document.children!, ifType: .paragraph) {
-                            // Setext_heading
-                            previousNode.end = source.getPosition(line.end)
-                            previousNode.type = .heading
-                        } else {
-                            continue
-                        }
-                    case .block_quote:
-                        break
-                    default:
-                        break
-                    }
-                    break
-                }
+        let blocks = getBlocks()
+        for i in 0..<blocks.count {
+            switch blocks[i].type {
+            case .thematic_break:
+                let node = thematicBreakNode(blocks[i])
+                node.parent = document
+                document.children?.append(node)
+            case .atx_heading:
+                break
+            case .setext_heading:
+                break
+            case .indented_code_block:
+                break
+            case .fenced_code_block:
+                break
+            case .html_block:
+                break
+            case .link_reference_definition:
+                break
+            case .paragraph:
+                break
+            case .block_quote:
+                break
+            case .list_item:
+                break
+            case .blank_line:
+                break
             }
-            lineNumber = lineNumber + 1
         }
-        
         return document
+    }
+    
+    func thematicBreakNode(_ block: Block) -> Node {
+        let node = Node(type: .thematic_break)
+        node.start = source.getPosition(block.start)
+        node.end = source.getPosition(block.end)
+        return node
+    }
+    
+    private func getLastNode(_ nodes: [Node], ifType type: NodeType) -> Node? {
+        // Return the last node if of a specific type
+        if let node = nodes.last {
+            if node.type == type {
+                return node
+            }
+        }
+        return nil
     }
     
     // MARK: Debug
