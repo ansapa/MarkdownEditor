@@ -57,7 +57,7 @@ extension MarkdownEditor {
                         blockColor = NSColor.gray
                     case .block_quote:
                         blockColor = NSColor.blue
-                    case .list_item:
+                    case .list:
                         blockColor = NSColor.magenta
                     case .html_block:
                         blockColor = NSColor.gray

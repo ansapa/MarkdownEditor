@@ -53,6 +53,7 @@ class MarkdownEditorTests: XCTestCase {
             print("============")
             print("testCase \(test.example)")
             print("============")
+            print("Section: \(test.section)\n")
             let markdown = test.markdown
             print("Markdown:\n\(markdown)")
             let html = test.html
