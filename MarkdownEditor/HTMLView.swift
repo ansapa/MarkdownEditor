@@ -10,11 +10,11 @@ import WebKit
 
 struct HTMLView: View {
     var text: String
-    @State var htmlToggle = true
+    @State var viewSource = false
     var body: some View {
         VStack {
             VStack {
-                if htmlToggle {
+                if viewSource {
                     ScrollView {
                         Text(htmlText())
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -26,7 +26,7 @@ struct HTMLView: View {
                 Spacer()
             }
             .background(Color.white)
-            Toggle("View source",isOn: $htmlToggle)
+            Toggle("View source",isOn: $viewSource)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }

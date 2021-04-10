@@ -4,30 +4,175 @@
 //
 //  Created by Patrick Van den Bergh on 05/04/2021.
 //
+//  Usage:
+//  let markdown = Markdown(source)
+//  let lines = markdown.getLines()
+//  let blocks = markdown.getBlocks()
+//  let nodes = markdown.getNodes()
+//  let html = markdown.getHtml()
+//
+//  Parsing:
+//  <source> -> Lines (= array of Line) -> Blocks (= array of Block) -> Nodes (= tree of Node) -> HTML
 
 import Foundation
 
 class Markdown {
-    // MARK: - Public
-    // These are the interfaces of the class
+    
+    // MARK: - Public -
+    
+    // MARK: Properties
     let source: String
     
+    // MARK: Initializers
     init(_ source: String) {
         self.source = source
     }
+
+    // MARK: Line
+    struct Line {
+        let start: String.Index
+        let end: String.Index
+    }
     
+    func getLines() -> [Line] {
+        return _getLines(source)
+    }
+    
+    // MARK: Block
+    enum BlockType {
+        case thematic_break
+        case atx_heading
+        case setext_heading
+        case indented_code_block
+        case fenced_code_block
+        case html_block
+        case link_reference_definition
+        case paragraph
+        case block_quote
+        case list_item
+        case blank_line
+    }
+    
+    class Block {
+        var start: String.Index
+        var end: String.Index
+        var type: BlockType
+        
+        init(start: String.Index, end: String.Index, type: BlockType) {
+            self.start = start
+            self.end = end
+            self.type = type
+        }
+    }
+    
+    func getBlocks() -> [Block] {
+        return _getBlocks()
+    }
+
+    // MARK: Node
+    enum NodeType {
+        // Block nodes
+        case document
+        case block_quote
+        case list
+        case item
+        case code_block
+        case paragraph
+        case heading
+        case thematic_break
+        case html_block
+        // Inline nodes
+        case text
+        case softbreak
+        case linebreak
+        case code
+        case emph
+        case strong
+        case link
+        case image
+        case html_inline
+    }
+    
+    class Node {
+        var type: NodeType
+        var start: Int
+        var end: Int
+        var parent: Node?
+        var children: [Node]?
+        var contents: String?
+        var attributes: [String:String]?
+        
+        init(type: NodeType) {
+            self.type = type
+            start = 0
+            end = 0
+            parent = nil
+            children = nil
+            contents = nil
+            attributes = nil
+        }
+    }
+    
+    func getNodes() -> Node {
+        return _getNodes()
+    }
+
+    // MARK: HTML
     func getHtml() -> String {
         return _getHtml()
     }
     
+    // MARK: DebugInfo
     func getDebugInfo() -> String {
         return _getDebugInfo()
     }
     
-    // MARK: - Private
-    // This is internal stuff. User of the class should not worry about these.
-    private let rules = [
-        (#"^ {0,3}- .*$"#, .list_item),
+    // MARK: - Private -
+    
+    // MARK: Line
+    private func _getLines(_ str: String) -> [Line] {
+        // Get lines from a string.
+        var lines = [Line]()
+        var index = str.startIndex
+        var start = index
+        
+        while index < str.endIndex {
+            if str[index] == "\n" || str[index] == "\r" || str[index] == "\r\n" {
+                let line = Line(start: start, end: index)
+                lines.append(line)
+                start = str.index(after: index)
+            }
+            index = str.index(after: index)
+        }
+        if start < str.endIndex {
+            let end = str.index(before: str.endIndex)
+            let line = Line(start: start, end: end)
+            lines.append(line)
+        }
+        return lines
+    }
+    
+    private func lineString(_ str: String) -> String {
+        var output = ""
+        for i in 0..<str.count {
+            let ch = str[str.index(str.startIndex, offsetBy: i)]
+            switch ch {
+            case "\n":
+                output += "[\\n]"
+            case "\r":
+                output += "[\\r]"
+            case "\r\n":
+                output += "[\\r\\n]"
+            default:
+                output += "[\(ch)]"
+            }
+        }
+        return output
+    }
+
+    // MARK: Block
+    private let blockRules = [
+        (#"^ {0,3}- .*$"#, BlockType.list_item),
         (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
         (#"^{0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
         (#"^{1,}\t((\*[ \t]*){3,}|(-[ \t]*){3,}|(_[ \t]*){3,})[ \t]*$"#, BlockType.thematic_break),
@@ -43,44 +188,24 @@ class Markdown {
         (#".*"#, BlockType.paragraph)
     ]
 
-    enum BlockType {
-        case thematic_break
-        case atx_heading
-        case setext_heading
-        case indented_code_block
-        case fenced_code_block
-        case html_block
-        case link_reference_definition
-        case paragraph
-        case block_quote
-        case list_item
-        case blank_line
-    }
-    
-    func getBlocks() -> [Block] {
+    private func _getBlocks() -> [Block] {
         var blocks = [Block]()
         let lines = getLines()
         var lineNumber = 0
         while lineNumber < lines.count {
             let line = lines[lineNumber]
             let lineStr = source[line.start...line.end]
-            for (rule, blockType) in rules {
+            for (rule, blockType) in blockRules {
                 if lineStr.range(of: rule, options: .regularExpression) != nil {
                     // Recognized line.
                     switch blockType {
                     case .setext_heading:
-                        if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                        if let previousBlock = getLastBlock(blocks, ifType: .paragraph) {
                             // Setext_heading
                             previousBlock.end = line.end
                             previousBlock.type = .setext_heading
                         } else {
-                            if lineStr.range(of: #"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, options: .regularExpression) != nil {
-                                let block = Block(start: line.start, end: line.end, type: .thematic_break)
-                                blocks.append(block)
-                            } else {
-                                let block = Block(start: line.start, end: line.end, type: .paragraph)
-                                blocks.append(block)
-                            }
+                            continue
                         }
                     case .fenced_code_block:
                         if lineNumber + 1 < lines.count {
@@ -122,12 +247,11 @@ class Markdown {
                             let block = Block(start: line.start, end: line.end, type: blockType)
                             blocks.append(block)
                         }
-
                     case .indented_code_block:
-                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                        if let previousBlock = getLastBlock(blocks, ifType: blockType) {
                             // Continue
                             previousBlock.end = line.end
-                        } else if let previousBlock = getLast(blocks, ifType: .paragraph) {
+                        } else if let previousBlock = getLastBlock(blocks, ifType: .paragraph) {
                             // Continue
                             previousBlock.end = line.end
                         } else {
@@ -138,7 +262,7 @@ class Markdown {
                          .blank_line,
                          .list_item,
                          .block_quote:
-                        if let previousBlock = getLast(blocks, ifType: blockType) {
+                        if let previousBlock = getLastBlock(blocks, ifType: blockType) {
                             // Continue
                             previousBlock.end = line.end
                         } else {
@@ -156,7 +280,37 @@ class Markdown {
         }
         return blocks
     }
+    
+    private func getLastBlock(_ blocks: [Block], ifType type: BlockType) -> Block? {
+        // Get last block if of a specific type
+        if let block = blocks.last {
+            if block.type == type {
+                return block
+            }
+        }
+        return nil
+    }
+    
+    private func blockTypeString(_ block: Markdown.Block) -> String {
+        switch block.type {
+        case .atx_heading:
+            return "<ATX_HEADING>"
+        case .setext_heading:
+            return "<SETEXT_HEADING>"
+        case .paragraph:
+            return "<PARAGRAPH>"
+        case .thematic_break:
+            return "<THEMATIC_BREAK>"
+        case .list_item:
+            return "<LIST_ITEM>"
+        case .blank_line:
+            return "<BLANK_LINE>"
+        default:
+            return "<Unknown>"
+        }
+    }
 
+    // MARK: HTML
     private func _getHtml() -> String {
         var html = ""
         let blocks = getBlocks()
@@ -215,7 +369,7 @@ class Markdown {
                 }
                 html += "<h\(level)>\(blockContents)</h\(level)>\n"
             case .setext_heading:
-                let lines = getLines(blockContents)
+                let lines = _getLines(blockContents)
                 let setext_indicator = blockContents[lines[lines.count - 1].start]
                 if setext_indicator == "=" {
                     html += "<h1>"
@@ -239,7 +393,7 @@ class Markdown {
                 html += "<pre><code>\(blockContents)\n</code></pre>\n"
             case .fenced_code_block:
                 html += "<pre><code>"
-                let lines = getLines(blockContents)
+                let lines = _getLines(blockContents)
                 if lines.count > 2 {
                     for i in 1...lines.count - 2 {
                         html += blockContents[lines[i].start...lines[i].end]
@@ -256,7 +410,7 @@ class Markdown {
             case .html_block:
                 html += "\(blockContents)\n"
             case .block_quote:
-                let lines = getLines(blockContents)
+                let lines = _getLines(blockContents)
                 html += "<blockquote>"
                 for line in lines {
                     if blockContents.count > 1 {
@@ -270,7 +424,7 @@ class Markdown {
                 }
                 html += "</blockquote>\n"
             case .list_item:
-                let lines = getLines(blockContents)
+                let lines = _getLines(blockContents)
                 html += "<ul>\n"
                 for line in lines {
                     if blockContents.count > 1 {
@@ -296,112 +450,89 @@ class Markdown {
         return html
     }
 
-    private func getLines(_ str: String) -> [Line] {
-        var lines = [Line]()
-        var index = str.startIndex
-        var start = index
-        
-        while index < str.endIndex {
-            if str[index] == "\n" || str[index] == "\r" || str[index] == "\r\n" {
-                let line = Line(start: start, end: index)
-                lines.append(line)
-                start = str.index(after: index)
-            }
-            index = str.index(after: index)
-        }
-        if start < str.endIndex {
-            let end = str.index(before: str.endIndex)
-            let line = Line(start: start, end: end)
-            lines.append(line)
-        }
-        return lines
-    }
-
-    func getLines() -> [Line] {
-        var lines = [Line]()
-        var index = source.startIndex
-        var start = index
-        
-        while index < source.endIndex {
-            if source[index] == "\n" || source[index] == "\r" || source[index] == "\r\n" {
-                let line = Line(start: start, end: index)
-                lines.append(line)
-                start = source.index(after: index)
-            }
-            index = source.index(after: index)
-        }
-        if start < source.endIndex {
-            let end = source.index(before: source.endIndex)
-            let line = Line(start: start, end: end)
-            lines.append(line)
-        }
-        return lines
-    }
-
     
     
-
-    private func getLast(_ blocks: [Block], ifType type: BlockType) -> Block? {
-        if let block = blocks.last {
-            if block.type == type {
-                return block
+    // MARK: Node
+    private func getLastNode(_ nodes: [Node], ifType type: NodeType) -> Node? {
+        // Return the last node if of a specific type
+        if let node = nodes.last {
+            if node.type == type {
+                return node
             }
         }
         return nil
     }
+
+    // MARK: Node
+    private enum Rule {
+        case list
+        case setext_heading
+        case thematic_break
+        case atx_heading
+        case block_quote
+        case indented_code_block
+        case fenced_code_block
+        case html_block
+        case blank_line
+        case paragraph
+    }
     
-    class Block {
-        var start: String.Index
-        var end: String.Index
-        var type: BlockType
+    private let rules = [
+        (#"^ {0,3}- .*$"#, Rule.list),
+        (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, Rule.setext_heading),
+        (#"^{0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, Rule.thematic_break),
+        (#"^{1,}\t((\*[ \t]*){3,}|(-[ \t]*){3,}|(_[ \t]*){3,})[ \t]*$"#, Rule.thematic_break),
+        (#"^ {0,3}#{1,6}[ \t].*$"#, Rule.atx_heading),
+        (#"^ {0,3}#{1,6}$"#, Rule.atx_heading),
+        (#"^ {0,3}>[ \t].*$"#, Rule.block_quote),
+        (#"^( {4,}).*$"#, Rule.indented_code_block),
+        (#"^ *\t{1,}.*$"#, Rule.indented_code_block),
+        (#"^ {0,3}```.*$"#, Rule.fenced_code_block),
+        (#"^ {0,3}~~~.*$"#, Rule.fenced_code_block),
+        (#"^<.*"#, Rule.html_block),
+        (#"^[\n\r]"#, Rule.blank_line),
+        (#".*"#, Rule.paragraph)
+    ]
+
+    private func _getNodes() -> Node {
+        // Initialize the document node
+        let document = Node(type: .document)
+        document.start = source.getPosition(source.startIndex)
+        document.end = source.getPosition(source.index(before: source.endIndex))
+        document.children = [Node]()
         
-        init(start: String.Index, end: String.Index, type: BlockType) {
-            self.start = start
-            self.end = end
-            self.type = type
-        }
-    }
-    
-    struct Line {
-        let start: String.Index
-        let end: String.Index
-    }
-  
-    func lineString(_ str: String) -> String {
-        var output = ""
-        for i in 0..<str.count {
-            let ch = str[str.index(str.startIndex, offsetBy: i)]
-            switch ch {
-            case "\n":
-                output += "[\\n]"
-            case "\r":
-                output += "[\\r]"
-            case "\r\n":
-                output += "[\\r\\n]"
-            default:
-                output += "[\(ch)]"
+        let lines = getLines()
+        var lineNumber = 0
+        while lineNumber < lines.count {
+            let line = lines[lineNumber]
+            let lineStr = source[line.start...line.end]
+            for (pattern, rule) in rules {
+                if lineStr.range(of: pattern, options: .regularExpression) != nil {
+                    // Matched pattern
+                    switch rule {
+                    case .setext_heading:
+                        if let previousNode = getLastNode(document.children!, ifType: .paragraph) {
+                            // Setext_heading
+                            previousNode.end = source.getPosition(line.end)
+                            previousNode.type = .heading
+                        } else {
+                            continue
+                        }
+                    case .block_quote:
+                        break
+                    default:
+                        break
+                    }
+                    break
+                }
             }
+            lineNumber = lineNumber + 1
         }
-        return output
+        
+        return document
     }
     
-    func blockTypeString(_ block: Markdown.Block) -> String {
-        switch block.type {
-        case .atx_heading:
-            return "<ATX_HEADING>"
-        case .setext_heading:
-            return "<SETEXT_HEADING>"
-        case .paragraph:
-            return "<PARAGRAPH>"
-        case .thematic_break:
-            return "<THEMATIC_BREAK>"
-        case .blank_line:
-            return "<BLANK_LINE>"
-        default:
-            return "<Unknown>"
-        }
-    }
-    
+    // MARK: Debug
     func _getDebugInfo() -> String {
         var debugInfo = ""
         
@@ -422,5 +553,18 @@ class Markdown {
         }
         
         return debugInfo
+    }
+}
+
+extension String {
+    // Helper function to get the Integer position of a String.Index position
+    func getPosition(_ pos: String.Index) -> Int {
+        let position = self.distance(from: self.startIndex, to: pos)
+        return position
+    }
+    // Helper function to get the String.Index position from an Integer position.
+    func getIndex(_ pos: Int) -> String.Index {
+        let index = self.index(startIndex, offsetBy: pos)
+        return index
     }
 }
