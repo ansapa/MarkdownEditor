@@ -76,8 +76,10 @@ class Markdown {
         // Block nodes
         case document
         case block_quote
-        case list
-        case item
+        case unorderedList
+        case orderedList
+        case unorderedItem
+        case orderedItem
         case code_block
         case paragraph
         case heading
@@ -627,7 +629,7 @@ class Markdown {
         guard block.type == .unordered_list else {
             fatalError("listItemNode: invalid block type")
         }
-        let node = Node(type: .list)
+        let node = Node(type: .unorderedList)
         node.start = source.getPosition(block.start)
         node.end = source.getPosition(block.end)
         node.children = [Node]()
@@ -640,7 +642,7 @@ class Markdown {
             let lineStr = String(source[line.start...line.end])
             if lineStr.range(of: #"^ {0,3}- .*$"#, options: .regularExpression) != nil {
                 if listItemString.count > 0 {
-                    let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+                    let itemNode = makeUnorderedItem(contents: listItemString, start: listItemStart, end: listItemEnd)
                     node.children?.append(itemNode)
                     if let tight = itemNode.attributes?["Tight"] {
                         if tight == "false" {
@@ -664,7 +666,7 @@ class Markdown {
             }
         }
         if listItemString.count > 0 {
-            let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+            let itemNode = makeUnorderedItem(contents: listItemString, start: listItemStart, end: listItemEnd)
             itemNode.attributes = node.attributes
             node.children?.append(itemNode)
         }
@@ -673,9 +675,9 @@ class Markdown {
     
     func orderedListNode(_ block: Block) -> Node {
         guard block.type == .ordered_list else {
-            fatalError("listItemNode: invalid block type")
+            fatalError("orderedListNode: invalid block type")
         }
-        let node = Node(type: .list)
+        let node = Node(type: .orderedList)
         node.start = source.getPosition(block.start)
         node.end = source.getPosition(block.end)
         node.children = [Node]()
@@ -688,7 +690,7 @@ class Markdown {
             let lineStr = String(source[line.start...line.end])
             if lineStr.range(of: #"^ {0,3}[0-9]*[\.)] .*$"#, options: .regularExpression) != nil {
                 if listItemString.count > 0 {
-                    let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+                    let itemNode = makeOrderedItem(contents: listItemString, start: listItemStart, end: listItemEnd)
                     node.children?.append(itemNode)
                     if let tight = itemNode.attributes?["Tight"] {
                         if tight == "false" {
@@ -712,15 +714,15 @@ class Markdown {
             }
         }
         if listItemString.count > 0 {
-            let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+            let itemNode = makeOrderedItem(contents: listItemString, start: listItemStart, end: listItemEnd)
             itemNode.attributes = node.attributes
             node.children?.append(itemNode)
         }
         return node
     }
     
-    func listItemNode(contents: String, start: Int, end: Int) -> Node {
-        let node = Node(type: .item)
+    func makeUnorderedItem(contents: String, start: Int, end: Int) -> Node {
+        let node = Node(type: .unorderedItem)
         node.start = start
         node.end = end
         node.children = [Node]()
@@ -750,13 +752,50 @@ class Markdown {
             }
         } else {
             let trimmedContents = String(contents.leftTrim(["-", " ", "\t"]))
-            let text = textNode(contents: trimmedContents, start: start, end: end)
+            let text = makeTextNode(contents: trimmedContents, start: start, end: end)
             node.children?.append(text)
         }
         return node
     }
-    
-    func textNode(contents: String, start: Int, end: Int) -> Node {
+
+    func makeOrderedItem(contents: String, start: Int, end: Int) -> Node {
+        let node = Node(type: .unorderedItem)
+        node.start = start
+        node.end = end
+        node.children = [Node]()
+        let lines = _getLines(contents)
+        if lines.count > 1 {
+            for line in lines {
+                if contents[line.start] == "\n" {
+                    // empty line
+                    node.attributes = ["Tight":"false"]
+                }
+            }
+            
+            // Create a new string with lines stripped by Block quote symbol
+            var itemContents = ""
+            for line in lines {
+                let lineString = String(contents[line.start...line.end]).leftTrim(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ")", " ", "\t"])
+                itemContents += lineString
+            }
+            // Build nodes from this
+            let markdown = Markdown(itemContents)
+            let document = markdown.getNodes()
+            // Add nodes as children
+            if let nodeList = document.children {
+                for n in nodeList {
+                    node.children?.append(n)
+                }
+            }
+        } else {
+            let trimmedContents = String(contents.leftTrim(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ")", " ", "\t"]))
+            let text = makeTextNode(contents: trimmedContents, start: start, end: end)
+            node.children?.append(text)
+        }
+        return node
+    }
+
+    func makeTextNode(contents: String, start: Int, end: Int) -> Node {
         let node = Node(type: .text)
         let trimCharacterSet = CharacterSet(charactersIn: " \n>")
         node.start = start
@@ -964,7 +1003,7 @@ class Markdown {
                 }
             }
             html += "</blockquote>\n"
-        case .list:
+        case .unorderedList:
             html += "<ul>\n"
             if let children = node.children {
                 for child in children {
@@ -972,7 +1011,34 @@ class Markdown {
                 }
             }
             html += "</ul>\n"
-        case .item:
+        case .orderedList:
+            html += "<ol>\n"
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
+            }
+            html += "</ol>\n"
+
+        case .unorderedItem:
+            html += "<li>"
+            if let tight = node.attributes?["Tight"] {
+                if tight == "false" {
+                    html += "<p>"
+                }
+            }
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
+            }
+            if let tight = node.attributes?["Tight"] {
+                if tight == "false" {
+                    html += "</p>"
+                }
+            }
+            html +=  "</li>\n"
+        case .orderedItem:
             html += "<li>"
             if let tight = node.attributes?["Tight"] {
                 if tight == "false" {
