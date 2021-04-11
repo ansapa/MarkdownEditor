@@ -17,7 +17,7 @@
 import Foundation
 
 class Markdown {
-    
+
     // MARK: - Public -
     
     // MARK: Properties
@@ -478,7 +478,9 @@ class Markdown {
         }
         node.attributes = ["Level":"\(level)"]
         let trimCharacterSet = CharacterSet(charactersIn: " \n#")
-        node.contents = contents.trimmingCharacters(in: trimCharacterSet)
+        let trimmedContents = contents.trimmingCharacters(in: trimCharacterSet)
+        let contentTokens = getTokens(trimmedContents)
+        node.children = getInlineNodes(tokens: contentTokens)
         return node
     }
 
@@ -646,6 +648,105 @@ class Markdown {
         return nil
     }
     
+    // MARK: Inline Tokens
+    private enum TokenType {
+        case non_whitespace
+        case whitespace
+        case line_ending
+        case star
+    }
+    
+    private struct Token {
+        var type: TokenType
+        var start: String.Index
+        var end: String.Index
+        var value: String
+    }
+
+    private func getTokens(_ str: String) -> [Token] {
+        var tokens = [Token]()
+
+        var i = str.startIndex
+        
+        while i < str.endIndex {
+            if str[i].isWhitespace {
+                var token = Token(type: .whitespace, start: i, end: i, value: "")
+                var next = str.index(after: i)
+                while next < str.endIndex && str[next].isWhitespace {
+                    token.end = next
+                    next = str.index(after: next)
+                }
+                token.value = String(str[token.start...token.end])
+                tokens.append(token)
+                i = str.index(after: token.end)
+                continue
+            }
+            if str[i].isNewline {
+                let token = Token(type: .line_ending, start: i, end: i, value: String(str[i]))
+                tokens.append(token)
+                i = str.index(after: token.end)
+                continue
+            }
+            if str[i] == "*" {
+                let token = Token(type: .star, start: i, end: i, value: String(str[i]))
+                tokens.append(token)
+                i = str.index(after: token.end)
+                continue
+            }
+
+            var token = Token(type: .non_whitespace, start: i, end: i, value: "")
+            var next = str.index(after: i)
+            while next < str.endIndex &&
+                    !(str[next].isWhitespace ||
+                      str[next].isNewline ||
+                      str[next] == "*") {
+                token.end = next
+                next = str.index(after: next)
+            }
+            token.value = String(str[token.start...token.end])
+            tokens.append(token)
+            i = str.index(after: token.end)
+        }
+        
+        return tokens
+    }
+    
+    private func getInlineNodes(tokens: [Token]) -> [Node] {
+        var nodes = [Node]()
+        var i = 0
+        var emph = false
+        var currentNode = Node(type: .text)
+        currentNode.contents = ""
+        while i < tokens.count {
+            switch tokens[i].type {
+            case .whitespace:
+                currentNode.contents?.append(tokens[i].value)
+            case .non_whitespace:
+                currentNode.contents?.append(tokens[i].value)
+            case .star:
+                if !emph {
+                    nodes.append(currentNode)
+                    let emphNode = Node(type: .emph)
+                    currentNode = Node(type: .text)
+                    currentNode.contents = "*"
+                    emphNode.children = [currentNode]
+                    nodes.append(emphNode)
+                    emph = true
+                } else {
+                    currentNode.contents = currentNode.contents?.leftTrim(["*"])
+                    currentNode = Node(type: .text)
+                    currentNode.contents = ""
+                }
+                
+            case .line_ending:
+                break
+            }
+            i = i + 1
+        }
+        nodes.append(currentNode)
+        return nodes
+    }
+    
     // MARK: HTML
     private func _getHtml(_ node: Node) -> String {
         var html = ""
@@ -694,8 +795,10 @@ class Markdown {
             } else {
                 html += "<h1>"
             }
-            if let contents = node.contents {
-                html += contents
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
             }
             if let level = node.attributes?["Level"] {
                 html += "</h\(level)>\n"
@@ -719,7 +822,13 @@ class Markdown {
         case .code:
             break
         case .emph:
-            break
+            html += "<emph>"
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
+            }
+            html += "</emph>"
         case .strong:
             break
         case .link:
