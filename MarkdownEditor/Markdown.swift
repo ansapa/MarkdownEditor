@@ -499,12 +499,14 @@ class Markdown {
         } else {
             node.attributes = ["Level":"2"]
         }
-        node.contents = ""
+        var nodeContents = ""
         for i in 0...lines.count - 2 {
-            node.contents! += contents[lines[i].start...lines[i].end]
+            nodeContents += contents[lines[i].start...lines[i].end]
         }
         // Trim last spaces/newlines
-        node.contents = node.contents?.trimmingCharacters(in: .whitespacesAndNewlines)
+        nodeContents = nodeContents.trimmingCharacters(in: .whitespacesAndNewlines)
+        let contentTokens = getTokens(nodeContents)
+        node.children = getInlineNodes(tokens: contentTokens)
         return node
     }
 
@@ -822,13 +824,13 @@ class Markdown {
         case .code:
             break
         case .emph:
-            html += "<emph>"
+            html += "<em>"
             if let children = node.children {
                 for child in children {
                     html += _getHtml(child)
                 }
             }
-            html += "</emph>"
+            html += "</em>"
         case .strong:
             break
         case .link:
