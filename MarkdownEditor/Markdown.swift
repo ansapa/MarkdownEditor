@@ -181,7 +181,7 @@ class Markdown {
         (#"^ {0,3}- .*$"#, BlockType.list),
         (#"^ {0,3}#{1,6}[ \t].*$"#, BlockType.atx_heading),
         (#"^ {0,3}#{1,6}$"#, BlockType.atx_heading),
-        (#"^ {0,3}>[ \t].*$"#, BlockType.block_quote),
+        (#"^ {0,3}>.*$"#, BlockType.block_quote),
         (#"^( {4,}).*$"#, BlockType.indented_code_block),
         (#"^ *\t{1,}.*$"#, BlockType.indented_code_block),
         (#"^ {0,3}```.*$"#, BlockType.fenced_code_block),
@@ -306,6 +306,8 @@ class Markdown {
         
     private func blockTypeString(_ block: Block) -> String {
         switch block.type {
+        case .block_quote:
+            return "<BLOCK_QUOTE>"
         case .atx_heading:
             return "<ATX_HEADING>"
         case .setext_heading:
@@ -575,18 +577,23 @@ class Markdown {
         node.start = source.getPosition(block.start)
         node.end = source.getPosition(block.end)
         node.children = [Node]()
-        let lines = _getLines(blockContents(block))
+        // Create a new string with lines stripped by Block quote symbol
+        var quoteContents = ""
+        let blockString = blockContents(block)
+        let lines = _getLines(blockString)
         for line in lines {
-            let contents = String(source[line.start...line.end])
-            let text = textNode(
-                contents: contents,
-                start: source.getPosition(line.start),
-                end: source.getPosition(line.end))
-            node.children?.append(text)
+            let lineString = String(blockString[line.start...line.end]).leftTrim([">", " ", "\t"])
+            quoteContents += lineString
         }
-        return node
-
-        node.contents = blockContents(block).trimmingCharacters(in: .whitespacesAndNewlines)
+        // Build nodes from this
+        let markdown = Markdown(quoteContents)
+        let document = markdown.getNodes()
+        // Add nodes as children
+        if let nodeList = document.children {
+            for n in nodeList {
+                node.children?.append(n)
+            }
+        }
         return node
     }
 
@@ -650,7 +657,7 @@ class Markdown {
                 }
             }
         case .block_quote:
-            html += "<blockquote>"
+            html += "<blockquote>\n"
             if let children = node.children {
                 for node in children {
                     html += _getHtml(node)
@@ -674,7 +681,7 @@ class Markdown {
         case .code_block:
             html += "<pre><code>"
             if let contents = node.contents {
-                html += contents
+                html += contents.convertSpecialCharacters()
             }
             html +=  "\n</code></pre>\n"
         case .paragraph:
@@ -759,5 +766,28 @@ extension String {
     func getIndex(_ pos: Int) -> String.Index {
         let index = self.index(startIndex, offsetBy: pos)
         return index
+    }
+    // Helper function to remove chars from the left.
+    func leftTrim(_ chars: Set<Character>) -> String {
+        if let index = self.firstIndex(where: {!chars.contains($0)}) {
+            return String(self[index..<self.endIndex])
+        } else {
+            return ""
+        }
+    }
+    // Helper function to conver special characters
+    func convertSpecialCharacters() -> String {
+        var newString = self
+        let char_dictionary = [
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&apos;"
+        ];
+        for (escaped_char, unescaped_char) in char_dictionary {
+            newString = newString.replacingOccurrences(of: escaped_char, with: unescaped_char, options: NSString.CompareOptions.literal, range: nil)
+        }
+        return newString
     }
 }
