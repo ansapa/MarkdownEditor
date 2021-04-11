@@ -286,6 +286,9 @@ class Markdown {
                         } else if let previousBlock = getLastBlock(blocks, ifType: .block_quote) {
                             // Coninue
                             previousBlock.end = line.end
+                        } else if let previousBlock = getLastBlock(blocks, ifType: .unordered_list) {
+                            // Coninue
+                            previousBlock.end = line.end
                         } else {
                             let block = Block(start: line.start, end: line.end, type: blockType)
                             blocks.append(block)
@@ -421,7 +424,6 @@ class Markdown {
         }
         document.children = [Node]()
         
-        let blocks = getBlocks()
         for i in 0..<blocks.count {
             switch blocks[i].type {
             case .thematic_break:
@@ -737,9 +739,27 @@ class Markdown {
             
             // Create a new string with lines stripped by Block quote symbol
             var itemContents = ""
-            for line in lines {
-                let lineString = String(contents[line.start...line.end]).leftTrim(["-", " ", "\t"])
-                itemContents += lineString
+            let firstLine = String(contents[lines[0].start...lines[0].end]).leftTrim(["-", " ", "\t"])
+            itemContents += firstLine
+            // Determine jump
+            var ch = lines[0].start
+            var jump = 0
+            while ch <= lines[0].end && contents[ch] != "-" {
+                ch = contents.index(after: ch)
+                jump = jump + 1
+            }
+            if ch <= lines[0].end {
+                jump = jump + 1
+            }
+            if lines.count > 1 {
+                for i in 1..<lines.count {
+                    let lineStr = contents[lines[i].start...lines[i].end]
+                    if lineStr.count > jump {
+                        itemContents += String(contents[contents.index(lines[i].start, offsetBy: jump)...lines[i].end])
+                    } else {
+                        itemContents += "\n"
+                    }
+                }
             }
             // Build nodes from this
             let markdown = Markdown(itemContents)
@@ -1024,7 +1044,7 @@ class Markdown {
             html += "<li>"
             if let tight = node.attributes?["Tight"] {
                 if tight == "false" {
-                    html += "<p>"
+                    html += "\n<p>"
                 }
             }
             if let children = node.children {
@@ -1039,7 +1059,7 @@ class Markdown {
             }
             html +=  "</li>\n"
         case .orderedItem:
-            html += "<li>"
+            html += "<li>\n"
             if let tight = node.attributes?["Tight"] {
                 if tight == "false" {
                     html += "<p>"
