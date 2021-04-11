@@ -57,7 +57,8 @@ extension MarkdownEditor {
                         blockColor = NSColor.gray
                     case .block_quote:
                         blockColor = NSColor.blue
-                    case .list:
+                    case .ordered_list,
+                         .unordered_list:
                         blockColor = NSColor.magenta
                     case .html_block:
                         blockColor = NSColor.gray
@@ -68,6 +69,7 @@ extension MarkdownEditor {
                     let end = block.end.utf16Offset(in: scanner.source)
                     let length = end - start + 1
                     textView.textStorage?.addAttribute(.foregroundColor, value: blockColor, range: NSRange(location: start, length: length))
+                    textView.font = NSFont(name: "Courier", size: 16.0)
                 }
                 self.parent.text = text
             }

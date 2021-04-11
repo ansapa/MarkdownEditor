@@ -49,7 +49,8 @@ class Markdown {
         case link_reference_definition
         case paragraph
         case block_quote
-        case list
+        case unordered_list
+        case ordered_list
         case blank_line
     }
     
@@ -178,7 +179,8 @@ class Markdown {
         (#"^ {0,3}((=){1,}|(-){1,})[ \t]*$"#, BlockType.setext_heading),
         (#"^ {0,3}((\* *){3,}|(- *){3,}|(_ *){3,})[ \t]*$"#, BlockType.thematic_break),
         (#"^ {1,}\t((\*[ \t]*){3,}|(-[ \t]*){3,}|(_[ \t]*){3,})[ \t]*$"#, BlockType.thematic_break),
-        (#"^ {0,3}- .*$"#, BlockType.list),
+        (#"^ {0,3}- .*$"#, BlockType.unordered_list),
+        (#"^ {0,3}[0-9]*[\.)] .*$"#, BlockType.ordered_list),
         (#"^ {0,3}#{1,6}[ \t].*$"#, BlockType.atx_heading),
         (#"^ {0,3}#{1,6}$"#, BlockType.atx_heading),
         (#"^ {0,3}>.*$"#, BlockType.block_quote),
@@ -256,6 +258,9 @@ class Markdown {
                         } else if let previousBlock = getLastBlock(blocks, ifType: .paragraph) {
                             // Continue
                             previousBlock.end = line.end
+                        } else if let previousBlock = getLastBlock(blocks, ifType: .unordered_list) {
+                            // Continue
+                            previousBlock.end = line.end
                         } else {
                             let block = Block(start: line.start, end: line.end, type: blockType)
                             blocks.append(block)
@@ -264,7 +269,7 @@ class Markdown {
                         if let previousBlock = getLastBlock(blocks, ifType: blockType) {
                             // Continue
                             previousBlock.end = line.end
-                        } else if let previousBlock = getLastBlock(blocks, ifType: .list) {
+                        } else if let previousBlock = getLastBlock(blocks, ifType: .unordered_list) {
                             // Continue
                             previousBlock.end = line.end
                         }
@@ -272,8 +277,19 @@ class Markdown {
                             let block = Block(start: line.start, end: line.end, type: blockType)
                             blocks.append(block)
                         }
-                    case .paragraph,
-                         .list,
+                    case .paragraph:
+                        if let previousBlock = getLastBlock(blocks, ifType: blockType) {
+                            // Continue
+                            previousBlock.end = line.end
+                        } else if let previousBlock = getLastBlock(blocks, ifType: .block_quote) {
+                            // Coninue
+                            previousBlock.end = line.end
+                        } else {
+                            let block = Block(start: line.start, end: line.end, type: blockType)
+                            blocks.append(block)
+                        }
+                    case .unordered_list,
+                         .ordered_list,
                          .block_quote:
                         if let previousBlock = getLastBlock(blocks, ifType: blockType) {
                             // Continue
@@ -316,7 +332,7 @@ class Markdown {
             return "<PARAGRAPH>"
         case .thematic_break:
             return "<THEMATIC_BREAK>"
-        case .list:
+        case .unordered_list:
             return "<LIST_ITEM>"
         case .blank_line:
             return "<BLANK_LINE>"
@@ -442,8 +458,12 @@ class Markdown {
                 let node = blockQuoteNode(blocks[i])
                 node.parent = document
                 document.children?.append(node)
-            case .list:
-                let node = listNode(blocks[i])
+            case .unordered_list:
+                let node = unorderedListNode(blocks[i])
+                node.parent = document
+                document.children?.append(node)
+            case .ordered_list:
+                let node = orderedListNode(blocks[i])
                 node.parent = document
                 document.children?.append(node)
             case .blank_line:
@@ -477,7 +497,7 @@ class Markdown {
             level = level + 1
         }
         node.attributes = ["Level":"\(level)"]
-        let trimCharacterSet = CharacterSet(charactersIn: " \n#")
+        let trimCharacterSet = CharacterSet(charactersIn: "\t \n#")
         let trimmedContents = contents.trimmingCharacters(in: trimCharacterSet)
         let contentTokens = getTokens(trimmedContents)
         node.children = getInlineNodes(tokens: contentTokens)
@@ -569,7 +589,9 @@ class Markdown {
         let node = Node(type: .paragraph)
         node.start = source.getPosition(block.start)
         node.end = source.getPosition(block.end)
-        node.contents = blockContents(block).trimmingCharacters(in: .whitespacesAndNewlines)
+        let contents = blockContents(block).trimmingCharacters(in: .whitespacesAndNewlines)
+        let contentTokens = getTokens(contents)
+        node.children = getInlineNodes(tokens: contentTokens)
         return node
     }
 
@@ -586,8 +608,8 @@ class Markdown {
         let blockString = blockContents(block)
         let lines = _getLines(blockString)
         for line in lines {
-            let lineString = String(blockString[line.start...line.end]).leftTrim([">", " ", "\t"])
-            quoteContents += lineString
+            let lineString = String(blockString[line.start...line.end]).leftTrim([" ", "\t"])
+            quoteContents += String(lineString[lineString.index(after: lineString.startIndex)..<lineString.endIndex])
         }
         // Build nodes from this
         let markdown = Markdown(quoteContents)
@@ -601,21 +623,97 @@ class Markdown {
         return node
     }
 
-    func listNode(_ block: Block) -> Node {
-        guard block.type == .list else {
+    func unorderedListNode(_ block: Block) -> Node {
+        guard block.type == .unordered_list else {
             fatalError("listItemNode: invalid block type")
         }
         let node = Node(type: .list)
         node.start = source.getPosition(block.start)
         node.end = source.getPosition(block.end)
         node.children = [Node]()
-        let lines = _getLines(blockContents(block))
+        node.attributes = ["Tight":"true"]
+        let lines = _getLines(String(source[block.start...block.end]))
+        var listItemString = ""
+        var listItemStart = source.getPosition(block.start)
+        var listItemEnd = source.getPosition(block.end)
         for line in lines {
-            let contents = String(source[line.start...line.end])
-            let itemNode = listItemNode(
-                contents: contents,
-                start: source.getPosition(line.start),
-                end: source.getPosition(line.end))
+            let lineStr = String(source[line.start...line.end])
+            if lineStr.range(of: #"^ {0,3}- .*$"#, options: .regularExpression) != nil {
+                if listItemString.count > 0 {
+                    let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+                    node.children?.append(itemNode)
+                    if let tight = itemNode.attributes?["Tight"] {
+                        if tight == "false" {
+                            node.attributes = itemNode.attributes
+                            for child in node.children! {
+                                child.attributes = node.attributes
+                            }
+                        } else {
+                            itemNode.attributes = node.attributes
+                        }
+                    } else {
+                        itemNode.attributes = node.attributes
+                    }
+                }
+                listItemString = lineStr
+                listItemStart = source.getPosition(line.start)
+                listItemEnd = source.getPosition(line.end)
+            } else {
+                listItemString += lineStr
+                listItemEnd = source.getPosition(line.end)
+            }
+        }
+        if listItemString.count > 0 {
+            let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+            itemNode.attributes = node.attributes
+            node.children?.append(itemNode)
+        }
+        return node
+    }
+    
+    func orderedListNode(_ block: Block) -> Node {
+        guard block.type == .ordered_list else {
+            fatalError("listItemNode: invalid block type")
+        }
+        let node = Node(type: .list)
+        node.start = source.getPosition(block.start)
+        node.end = source.getPosition(block.end)
+        node.children = [Node]()
+        node.attributes = ["Tight":"true"]
+        let lines = _getLines(String(source[block.start...block.end]))
+        var listItemString = ""
+        var listItemStart = source.getPosition(block.start)
+        var listItemEnd = source.getPosition(block.end)
+        for line in lines {
+            let lineStr = String(source[line.start...line.end])
+            if lineStr.range(of: #"^ {0,3}[0-9]*[\.)] .*$"#, options: .regularExpression) != nil {
+                if listItemString.count > 0 {
+                    let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+                    node.children?.append(itemNode)
+                    if let tight = itemNode.attributes?["Tight"] {
+                        if tight == "false" {
+                            node.attributes = itemNode.attributes
+                            for child in node.children! {
+                                child.attributes = node.attributes
+                            }
+                        } else {
+                            itemNode.attributes = node.attributes
+                        }
+                    } else {
+                        itemNode.attributes = node.attributes
+                    }
+                }
+                listItemString = lineStr
+                listItemStart = source.getPosition(line.start)
+                listItemEnd = source.getPosition(line.end)
+            } else {
+                listItemString += lineStr
+                listItemEnd = source.getPosition(line.end)
+            }
+        }
+        if listItemString.count > 0 {
+            let itemNode = listItemNode(contents: listItemString, start: listItemStart, end: listItemEnd)
+            itemNode.attributes = node.attributes
             node.children?.append(itemNode)
         }
         return node
@@ -623,10 +721,38 @@ class Markdown {
     
     func listItemNode(contents: String, start: Int, end: Int) -> Node {
         let node = Node(type: .item)
-        let trimCharacterSet = CharacterSet(charactersIn: " \n-")
         node.start = start
         node.end = end
-        node.contents = contents.trimmingCharacters(in: trimCharacterSet)
+        node.children = [Node]()
+        let lines = _getLines(contents)
+        if lines.count > 1 {
+            for line in lines {
+                if contents[line.start] == "\n" {
+                    // empty line
+                    node.attributes = ["Tight":"false"]
+                }
+            }
+            
+            // Create a new string with lines stripped by Block quote symbol
+            var itemContents = ""
+            for line in lines {
+                let lineString = String(contents[line.start...line.end]).leftTrim(["-", " ", "\t"])
+                itemContents += lineString
+            }
+            // Build nodes from this
+            let markdown = Markdown(itemContents)
+            let document = markdown.getNodes()
+            // Add nodes as children
+            if let nodeList = document.children {
+                for n in nodeList {
+                    node.children?.append(n)
+                }
+            }
+        } else {
+            let trimmedContents = String(contents.leftTrim(["-", " ", "\t"]))
+            let text = textNode(contents: trimmedContents, start: start, end: end)
+            node.children?.append(text)
+        }
         return node
     }
     
@@ -656,6 +782,9 @@ class Markdown {
         case whitespace
         case line_ending
         case star
+        case double_star
+        case underscore
+        case double_underscore
     }
     
     private struct Token {
@@ -690,7 +819,29 @@ class Markdown {
                 continue
             }
             if str[i] == "*" {
-                let token = Token(type: .star, start: i, end: i, value: String(str[i]))
+                let next = str.index(after: i)
+                let token: Token
+                if next < str.endIndex && str[next] == "*" {
+                    // Double star
+                    token = Token(type: .double_star, start: i, end: next, value: "**")
+                } else {
+                    // Single star
+                    token = Token(type: .star, start: i, end: i, value: String(str[i]))
+                }
+                tokens.append(token)
+                i = str.index(after: token.end)
+                continue
+            }
+            if str[i] == "_" {
+                let next = str.index(after: i)
+                let token: Token
+                if next < str.endIndex && str[next] == "_" {
+                    // Double underscore
+                    token = Token(type: .double_underscore, start: i, end: next, value: "**")
+                } else {
+                    // Single underscore
+                    token = Token(type: .underscore, start: i, end: i, value: String(str[i]))
+                }
                 tokens.append(token)
                 i = str.index(after: token.end)
                 continue
@@ -717,6 +868,7 @@ class Markdown {
         var nodes = [Node]()
         var i = 0
         var emph = false
+        var strong = false
         var currentNode = Node(type: .text)
         currentNode.contents = ""
         while i < tokens.count {
@@ -738,8 +890,53 @@ class Markdown {
                     currentNode.contents = currentNode.contents?.leftTrim(["*"])
                     currentNode = Node(type: .text)
                     currentNode.contents = ""
+                    emph = false
                 }
-                
+            case .underscore:
+                if !emph {
+                    nodes.append(currentNode)
+                    let emphNode = Node(type: .emph)
+                    currentNode = Node(type: .text)
+                    currentNode.contents = "*"
+                    emphNode.children = [currentNode]
+                    nodes.append(emphNode)
+                    emph = true
+                } else {
+                    currentNode.contents = currentNode.contents?.leftTrim(["*"])
+                    currentNode = Node(type: .text)
+                    currentNode.contents = ""
+                    emph = false
+                }
+            case .double_star:
+                if !strong {
+                    nodes.append(currentNode)
+                    let emphNode = Node(type: .strong)
+                    currentNode = Node(type: .text)
+                    currentNode.contents = "**"
+                    emphNode.children = [currentNode]
+                    nodes.append(emphNode)
+                    strong = true
+                } else {
+                    currentNode.contents = currentNode.contents?.leftTrim(["*"])
+                    currentNode = Node(type: .text)
+                    currentNode.contents = ""
+                    strong = false
+                }
+            case .double_underscore:
+                if !strong {
+                    nodes.append(currentNode)
+                    let emphNode = Node(type: .strong)
+                    currentNode = Node(type: .text)
+                    currentNode.contents = "**"
+                    emphNode.children = [currentNode]
+                    nodes.append(emphNode)
+                    strong = true
+                } else {
+                    currentNode.contents = currentNode.contents?.leftTrim(["*"])
+                    currentNode = Node(type: .text)
+                    currentNode.contents = ""
+                    strong = false
+                }
             case .line_ending:
                 break
             }
@@ -770,15 +967,27 @@ class Markdown {
         case .list:
             html += "<ul>\n"
             if let children = node.children {
-                for node in children {
-                    html += _getHtml(node)
+                for child in children {
+                    html += _getHtml(child)
                 }
             }
             html += "</ul>\n"
         case .item:
             html += "<li>"
-            if let contents = node.contents {
-                html += contents
+            if let tight = node.attributes?["Tight"] {
+                if tight == "false" {
+                    html += "<p>"
+                }
+            }
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
+            }
+            if let tight = node.attributes?["Tight"] {
+                if tight == "false" {
+                    html += "</p>"
+                }
             }
             html +=  "</li>\n"
         case .code_block:
@@ -788,9 +997,13 @@ class Markdown {
             }
             html +=  "\n</code></pre>\n"
         case .paragraph:
-            if let contents = node.contents {
-                html += "<p>" + contents + "</p>\n"
+            html += "<p>"
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
             }
+            html += "</p>\n"
         case .heading:
             if let level = node.attributes?["Level"] {
                 html += "<h\(level)>"
@@ -815,7 +1028,7 @@ class Markdown {
             }
         case .text:
             if let contents = node.contents {
-                html += contents
+                html += contents.convertSpecialCharacters()
             }
         case .softbreak:
             break
@@ -832,7 +1045,13 @@ class Markdown {
             }
             html += "</em>"
         case .strong:
-            break
+            html += "<strong>"
+            if let children = node.children {
+                for child in children {
+                    html += _getHtml(child)
+                }
+            }
+            html += "</strong>"
         case .link:
             break
         case .image:
@@ -890,11 +1109,11 @@ extension String {
     func convertSpecialCharacters() -> String {
         var newString = self
         let char_dictionary = [
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            "\"": "&quot;",
-            "'": "&apos;"
+            ("&", "&amp;"),
+            ("<", "&lt;"),
+            (">", "&gt;"),
+            ("\"", "&quot;)"),
+            ("'", "&apos;")
         ];
         for (escaped_char, unescaped_char) in char_dictionary {
             newString = newString.replacingOccurrences(of: escaped_char, with: unescaped_char, options: NSString.CompareOptions.literal, range: nil)
