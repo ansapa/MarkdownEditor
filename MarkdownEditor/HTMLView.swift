@@ -10,7 +10,7 @@ import WebKit
 
 struct HTMLView: View {
     var text: String
-    @State var viewSource = true
+    @State var viewSource = false
     var body: some View {
         VStack {
             VStack {

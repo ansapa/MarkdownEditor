@@ -684,12 +684,13 @@ class Markdown {
         node.end = source.getPosition(block.end)
         node.children = [Node]()
         node.attributes = ["Tight":"true"]
-        let lines = _getLines(String(source[block.start...block.end]))
+        let blockString = String(source[block.start...block.end])
+        let lines = _getLines(blockString)
         var listItemString = ""
         var listItemStart = source.getPosition(block.start)
         var listItemEnd = source.getPosition(block.end)
         for line in lines {
-            let lineStr = String(source[line.start...line.end])
+            let lineStr = String(blockString[line.start...line.end])
             if lineStr.range(of: #"^ {0,3}[0-9]*[\.)] .*$"#, options: .regularExpression) != nil {
                 if listItemString.count > 0 {
                     let itemNode = makeOrderedItem(contents: listItemString, start: listItemStart, end: listItemEnd)
@@ -1112,6 +1113,7 @@ class Markdown {
             if let contents = node.contents {
                 html += contents
             }
+            html += "\n"
         case .text:
             if let contents = node.contents {
                 html += contents.convertSpecialCharacters()
